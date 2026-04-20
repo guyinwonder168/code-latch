@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "types": ["node", "vitest/globals"],
+    "paths": {
+      "@codelatch/core": ["packages/core/src/index.ts"],
+      "@codelatch/schemas": ["packages/schemas/src/index.ts"],
+      "@codelatch/workflow-contracts": ["packages/workflow-contracts/src/index.ts"],
+      "@codelatch/adapter-base": ["packages/adapter-base/src/index.ts"],
+      "@codelatch/shared-utils": ["packages/shared-utils/src/index.ts"]
+    }
+  }
+}
