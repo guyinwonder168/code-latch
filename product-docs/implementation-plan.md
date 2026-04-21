@@ -1,10 +1,10 @@
 # CodeLatch Implementation Plan
 
-- **Document Version:** 0.1.1
+- **Document Version:** 0.1.2
 - **Document Status:** Draft
 - **Product Name:** CodeLatch
 - **Document Owner:** guyinwonder168
-- **Last Updated:** 2026-04-20
+- **Last Updated:** 2026-04-21
 - **Source of Truth Location:** `product-docs/implementation-plan.md`
 - **Derived From:**
   - `product-docs/codelatch-prd.md`
@@ -13,6 +13,11 @@
 ---
 
 ## Changelog
+
+### v0.1.2 - 2026-04-21
+- Section 2.1: Added `~/.config/opencode/` as global default install target; clarified `.opencode/` is opt-in; noted programmatic command registration choice; fixed skill discovery to SKILL.md folder pattern with YAML frontmatter; added cross-discovery and instructions.md surfaces; added `config.instructions` URLs.
+- Phase 2 task 2: Clarified global-first `~/.config/opencode/plugins/` as default, `.opencode/plugins/` as opt-in.
+- Phase 4 task 8: Fixed "no `.md` wrapper files needed" → "chooses programmatic command registration; `.opencode/commands/` is a valid OpenCode surface not used by CodeLatch".
 
 ### v0.1.1 - 2026-04-20
 - Marked Phase 0 as completed during planning now that the truth-doc reconciliation has already been applied.
@@ -52,9 +57,14 @@ This plan is derived from the PRD and technical design, then cross-checked again
 
 Verified host facts:
 - plugins are JavaScript or TypeScript modules,
-- project plugins live under `.opencode/plugins/`,
+- global config lives under `~/.config/opencode/` (default install target),
+- project-level config lives under `.opencode/` (opt-in only, not the default),
+- project plugins live under `.opencode/plugins/`, global plugins under `~/.config/opencode/plugins/`,
 - project configuration is driven through `opencode.json`,
-- commands, agents, skills, and plugins are host-native config/discovery surfaces,
+- commands may be registered either as file-based `.md` files in `.opencode/commands/` or programmatically through the plugin `config` hook via the `opencode.json` `command` key — CodeLatch chooses programmatic registration,
+- skills are discovered as `{skill,skills}/**/SKILL.md` folders with YAML frontmatter (`name`, `description` required), with cross-host discovery from `.claude/skills/` and `.agents/skills/`,
+- `.opencode/instructions.md` and `~/.config/opencode/instructions.md` are additional instruction surfaces,
+- `config.instructions` supports remote instruction URLs,
 - and plugin behavior is realized through runtime events and tool hooks rather than a packaged manifest format like Claude or Codex.
 
 Planning consequence:
@@ -375,7 +385,7 @@ These commands are planned deliverables of the early repository scaffold and bec
 
 **Planned tasks:**
 1. implement the OpenCode adapter package skeleton,
-2. create the OpenCode plugin entry module for `.opencode/plugins/`,
+2. create the OpenCode plugin entry module for `~/.config/opencode/plugins/` (global default) or `.opencode/plugins/` (project-level opt-in),
 3. define renderers for `AGENTS.md`, `opencode.json` (plugin entry only), command config entries (for plugin `config` hook), and adapter metadata,
 4. map canonical CodeLatch workflow events onto OpenCode runtime hooks and deterministic wrapper checkpoints,
 5. implement the minimal invocation bridge from the OpenCode plugin surface into the shared core dispatcher,
@@ -458,7 +468,7 @@ These commands are planned deliverables of the early repository scaffold and bec
 5. create or adopt truth docs through the truth-doc registry,
 6. render the OpenCode-native instruction anchor (`AGENTS.md`),
 7. render `.opencode/codelatch/adapter.json`,
-8. register CodeLatch commands via the OpenCode plugin `config` hook (no `.md` wrapper files needed),
+8. register CodeLatch commands via the OpenCode plugin `config` hook (chooses programmatic registration; `.opencode/commands/` is a valid OpenCode surface not used by CodeLatch),
 9. ensure the bootstrap summary reflects real emitted surfaces and policies.
 
 **Deliverables:**

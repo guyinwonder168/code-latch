@@ -1,16 +1,24 @@
 # CodeLatch Technical Design
 
-- **Document Version:** 0.2.14
+- **Document Version:** 0.2.15
 - **Document Status:** Draft
 - **Product Name:** CodeLatch
 - **Document Owner:** guyinwonder168
-- **Last Updated:** 2026-04-20
+- **Last Updated:** 2026-04-21
 - **Source of Truth Location:** `product-docs/technical-design.md`
 - **Derived From:** `product-docs/codelatch-prd.md`
 
 ---
 
 ## Changelog
+
+### v0.2.15 - 2026-04-21
+- Added Section 7.1.1: Global-First Install Path Rule for OpenCode — `~/.config/opencode/` is the default install target; `.opencode/` is project-level opt-in only.
+- Section 7.1 layout: Removed `.opencode/commands/` (exists but we choose programmatic), removed `.opencode/package.json` (not a real OpenCode surface), changed `.opencode/skills/` to `skills/*/SKILL.md` folder pattern, added `.opencode/instructions.md`, added `~/.config/opencode/` global config tree.
+- Section 8.4 OpenCode layout: Added `~/.config/opencode/` as global default, removed `package.json`, clarified `opencode.json` `command` key mechanism, added SKILL.md YAML frontmatter note, added cross-discovery note, added `config.instructions` URLs, added plugin hook enumeration.
+- Section 8.3.3: Added OpenCode global config directory note.
+- Section 9.1.1: Fixed "eliminates" wording — CodeLatch chooses programmatic registration; `.opencode/commands/` remains valid for other plugins.
+- Section 12A.2 Layer 2 OpenCode: Added global path, instructions.md, SKILL.md frontmatter, cross-discovery, command key, config.instructions URLs.
 
 ### v0.2.14 - 2026-04-20
 - Cleaned up remaining wording drift after the Kilo/Codex reconciliation pass.
@@ -434,15 +442,21 @@ product-docs/
       snippets/
     workspaces/
 
-.opencode/
-  commands/
-  skills/
+.opencode/                          # project-level only (opt-in); default is ~/.config/opencode/
+  skills/*/SKILL.md               # skill folders, each containing SKILL.md with YAML frontmatter
   agents/
   plugins/
-  package.json
+  instructions.md                 # project-level instruction surface discovered by OpenCode
   codelatch/
     adapter.json
     distribution-manifest.json
+
+~/.config/opencode/                # global config — DEFAULT install target for new CodeLatch installations
+  opencode.json                    # user-level plugin registration
+  plugins/                         # user-level plugin modules
+  agents/                          # user-level agents
+  skills/*/SKILL.md                # user-level skill folders
+  instructions.md                  # user-level instruction surface
 
 .claude/
   CLAUDE.md
@@ -474,6 +488,21 @@ product-docs/
 ```
 
 In multi-host repositories, documented OpenCode-compatible root or project surfaces such as `opencode.json` and `.opencode/` may also be present and reused by the Kilo adapter when that path is enabled.
+
+### 7.1.1 Global-First Install Path Rule for OpenCode
+
+OpenCode supports two configuration scopes:
+
+- **Global** (`~/.config/opencode/`) — the default installation target for CodeLatch. New CodeLatch installations place plugin modules, configuration, skills, agents, and instructions here.
+- **Project-local** (`.opencode/` in the project root) — used only when a team explicitly opts in to project-level customization. This is not the default and must not be treated as the primary configuration location.
+
+CodeLatch adapters and installers must default to the global path. Project-level `.opencode/` surfaces are used only when:
+- a user explicitly requests project-level customization during bootstrap or sync,
+- or the project already carries project-level OpenCode configuration that CodeLatch should adopt.
+
+The `opencode.json` `command` key is the mechanism through which the plugin `config` hook registers commands; CodeLatch uses this programmatically rather than creating `.md` files in `.opencode/commands/`.
+
+OpenCode also discovers skill content from cross-host directories (`.claude/skills/*/SKILL.md`, `.agents/skills/*/SKILL.md`), and supports remote instruction URLs via `config.instructions`. These are additional instruction surfaces that adapters should account for.
 
 ### 7.2 Why `.tmp/codelatch/` Is the Runtime Root
 
@@ -744,7 +773,7 @@ Rules:
 Shared CodeLatch workflow semantics stay consistent across adapters, but host realization differs:
 
 - **Claude Code** realizes event-driven integration primarily through plugin components and plugin hooks.
-- **OpenCode** realizes event-driven integration primarily through runtime plugin modules, documented config surfaces, and plugin event subscriptions.
+- **OpenCode** realizes event-driven integration primarily through runtime plugin modules, documented config surfaces, and plugin event subscriptions. The global config directory `~/.config/opencode/` is the default install target; project-level `.opencode/` is opt-in only.
 - **Codex** realizes reusable distribution primarily through packaged plugins and marketplace wiring, while lifecycle interception uses separate experimental hooks that must remain optional.
 - **Kilo Code** realizes MVP behavior primarily through documented OpenCode-compatible config/runtime surfaces plus Kilo-native `.kilo/` discovery roots, with config-triggered or wrapper-level checkpoints where richer plugin hooks are absent.
 
@@ -759,19 +788,36 @@ The layouts below show the documented project-local or plugin-packaged surfaces 
 ```text
 AGENTS.md
 
-opencode.json              # plugin entry only; commands registered by plugin config hook
+opencode.json              # plugin entry only; commands registered by plugin config hook via the command key
 
-.opencode/
-  skills/
+.opencode/                 # project-level only (opt-in); default install target is ~/.config/opencode/
+  skills/*/SKILL.md        # skill folders with YAML frontmatter (name, description)
   agents/
   plugins/
-  package.json
+  instructions.md          # project-level instruction surface
   codelatch/
     adapter.json
     distribution-manifest.json
+
+~/.config/opencode/        # DEFAULT global install target for new CodeLatch installations
+  opencode.json            # user-level config; plugin key registers @codelatch/adapter-opencode
+  plugins/                 # user-level plugin modules
+  agents/                  # user-level agents
+  skills/*/SKILL.md        # user-level skill folders
+  instructions.md          # user-level instruction surface
 ```
 
-Commands are registered programmatically inside the plugin's `config` hook rather than as `.md` files in `.opencode/commands/`. The plugin emits `{ template, description, subtask }` entries for each CodeLatch command and intercepts execution via `command.execute.before`.
+Commands are registered programmatically inside the plugin's `config` hook rather than as `.md` files in `.opencode/commands/`. The `opencode.json` `command` key is the mechanism used by the `config` hook to register each CodeLatch command with `{ template, description, subtask }` entries. The plugin intercepts execution via `command.execute.before`. CodeLatch **chooses** programmatic registration; `.opencode/commands/` remains a valid OpenCode surface for file-based commands used by other plugins.
+
+OpenCode skill discovery uses the glob pattern `{skill,skills}/**/SKILL.md`, where each skill is a folder containing a `SKILL.md` file with YAML frontmatter (`name` and `description` required). Cross-host discovery also scans `.claude/skills/*/SKILL.md` and `.agents/skills/*/SKILL.md`. The `config.instructions` key supports remote instruction URLs as an additional instruction surface.
+
+OpenCode plugin hooks available for CodeLatch integration:
+- **Lifecycle**: `config()` — init-time config mutation, used for command registration
+- **Interceptor**: `chat.message`, `chat.system.transform`, `chat.params`, `chat.headers` — runtime message and system-prompt transformation
+- **Provider**: `auth`, `provider.models` — authentication and model configuration
+- **Tool definition**: `tool` map — register custom tools
+- **Event**: `command.execute.before` — command interception (used by CodeLatch for delegating to shared core)
+- **Fire-and-forget events** — lightweight event subscriptions
 
 #### Claude Code
 
@@ -924,7 +970,7 @@ config: async (opencodeConfig) => {
 },
 ```
 
-Execution is intercepted via the `command.execute.before` hook, which delegates to the shared core runner. This approach eliminates `.opencode/commands/*.md` files entirely.
+Execution is intercepted via the `command.execute.before` hook, which delegates to the shared core runner. This approach **chooses programmatic registration** via the plugin `config` hook rather than file-based `.md` commands; `.opencode/commands/` remains a valid OpenCode surface for other plugins.
 
 ### 9.2 Wrapper Execution Contract
 
@@ -1740,7 +1786,7 @@ This layer is the only canonical authoring source for framework-owned reusable c
 Adapters install reviewed context assets into each host tool's **documented instruction, configuration, and extension surfaces**, rather than assuming a universal `context/` directory.
 
 Examples include:
-- **OpenCode**: `AGENTS.md`, `opencode.json`, `.opencode/skills/`, `.opencode/agents/`, `.opencode/plugins/`, plugin `config` hook for command registration, and `~/.config/opencode/...`
+- **OpenCode**: `AGENTS.md`, `opencode.json` (with `plugin` and `command` keys), `.opencode/skills/*/SKILL.md` (YAML frontmatter: `name`, `description`), `.opencode/agents/`, `.opencode/plugins/`, `.opencode/instructions.md`, plugin `config` hook for command registration, `~/.config/opencode/...` (global default), cross-host skill discovery from `.claude/skills/*/SKILL.md` and `.agents/skills/*/SKILL.md`, and remote instructions via `config.instructions` URLs
 - **Claude Code**: `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/skills/`, `.claude/agents/`, `.claude/commands/`, and `.claude-plugin/plugin.json`
 - **Codex**: `AGENTS.md`, `.agents/skills/`, `.agents/plugins/marketplace.json`, `.codex/agents/`, `.codex/config.toml`, optional experimental `.codex/hooks.json`, and `.codex-plugin/plugin.json`
 - **Kilo Code**: `AGENTS.md`, documented OpenCode-compatible `opencode.json` / `.opencode/...` surfaces when used, optional compatibility `CLAUDE.md`, optional `CONTEXT.md`, `kilo.jsonc`, `.kilo/kilo.jsonc`, `.kilo/skills/`, `.kilo/agents/`, and `~/.config/kilo/...`

@@ -1,15 +1,20 @@
 # CodeLatch Product Requirements Document (PRD)
 
-- **Document Version:** 0.2.10
+- **Document Version:** 0.2.11
 - **Document Status:** Draft
 - **Product Name:** CodeLatch
 - **Document Owner:** guyinwonder168
-- **Last Updated:** 2026-04-20
+- **Last Updated:** 2026-04-21
 - **Source of Truth Location:** `product-docs/codelatch-prd.md`
 
 ---
 
 ## Changelog
+
+### v0.2.11 - 2026-04-21
+- Section 11.3: Added OpenCode global config directory `~/.config/opencode/` as default install target; clarified `.opencode/` is project-level opt-in only; clarified OpenCode uses programmatic command registration via plugin `config` hook and `opencode.json` `command` key; noted `.opencode/commands/` remains valid for other plugins.
+- Section 12.4.1: Added `.opencode/instructions.md` and `~/.config/opencode/instructions.md` as OpenCode instruction surfaces.
+- Section 12.5: Clarified `.opencode/codelatch/...` is project-level opt-in; added `~/.config/opencode/` as global install path for OpenCode.
 
 ### v0.2.10 - 2026-04-20
 - Removed lingering wording drift that could imply a build sequence different from the implementation plan.
@@ -477,13 +482,17 @@ CodeLatch is distributed as a host-native integration layer for each supported C
 
 The installer-managed host integration distribution is global per user by default for each supported CLI, while project repositories keep project-local truth docs, wiring, and runtime memory.
 
+For **OpenCode**, the global config directory `~/.config/opencode/` is the default install target. Project-level `.opencode/` configuration is opt-in only, used when a team explicitly requests project-level customization.
+
+For all other hosts, global installation remains the default distribution mode.
+
 If a team needs project-local installation for special cases, adapters may support that as an explicit opt-in path.
 
 Installation is adapter-native per CLI, but package source remains shared.
 
 Host realization differs by adapter:
 - **Claude Code** and **Codex** use dedicated packaged-plugin distribution surfaces.
-- **OpenCode** uses runtime plugin-module and configuration surfaces.
+- **OpenCode** uses runtime plugin-module and configuration surfaces, with `~/.config/opencode/` as the global default and `.opencode/` as project-level opt-in. Commands are registered programmatically via the plugin `config` hook using the `opencode.json` `command` key rather than file-based `.md` wrappers; `.opencode/commands/` remains a valid OpenCode surface for other plugins.
 - **Kilo Code** is treated as a separate adapter target, but MVP reuses documented OpenCode-compatible config/runtime surfaces where verified and layers Kilo-native surfaces on top where needed.
 
 Installation targets only documented host-native discovery and integration surfaces. CodeLatch does not assume a universal cross-CLI folder layout for instructions, workflow roles, plugins, or hooks.
@@ -574,17 +583,19 @@ CodeLatch must determine the target host from the enabled adapter or install tar
 Default mapping:
 - **Claude Code** → `CLAUDE.md` (and `.claude/CLAUDE.md` when the adapter uses the host-local form)
 - **Codex** → `AGENTS.md`
-- **OpenCode** → `AGENTS.md`
+- **OpenCode** → `AGENTS.md` (plus `.opencode/instructions.md` as an additional project-level instruction surface, and `~/.config/opencode/instructions.md` as a global instruction surface)
 - **Kilo Code** → `AGENTS.md` plus documented OpenCode-compatible config/runtime surfaces and Kilo-native additions where needed
 
 CodeLatch must not create non-native instruction anchors by default only for symmetry. If multiple hosts are intentionally enabled in one repository, CodeLatch may create multiple host-native anchors, but they must stay semantically aligned.
 
 ### 12.5 Framework Namespace
 Framework-owned discovery and wiring files for a project can live under CLI-native project roots such as:
-- `.opencode/codelatch/...`
+- `.opencode/codelatch/...` (project-level opt-in only; default install target is `~/.config/opencode/`)
 - `.claude/codelatch/...`
 - `.codex/codelatch/...`
 - `.kilo/codelatch/...`
+
+The global install path for OpenCode is `~/.config/opencode/`, which is the default location for CodeLatch adapter metadata and plugin wiring when project-level customization is not requested.
 
 These CLI-native roots are for discovery, wiring, thin adapter metadata, and native-facing asset pointers. They are not the canonical storage for project memory.
 
