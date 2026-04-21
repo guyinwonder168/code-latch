@@ -5,7 +5,8 @@ import {
   createOpenCodeAdapterMetadata,
   renderOpenCodeAgentsMd,
   renderOpenCodeConfig,
-  renderOpenCodeCommandWrappers
+  mergePluginIntoConfig,
+  renderOpenCodeCommandConfig
 } from '@codelatch/adapter-opencode';
 
 describe('OpenCode adapter shell', () => {
@@ -52,37 +53,63 @@ describe('OpenCode adapter shell', () => {
     expect(content).toContain('OpenCode-native instruction anchor');
   });
 
-  it('renders deterministic opencode.json content', () => {
+  it('renders minimal opencode.json with only plugin entry', () => {
     const config = renderOpenCodeConfig({
-      pluginEntry: '.opencode/plugins/codelatch.ts',
-      commandNames: ['codelatch-bootstrap', 'codelatch-sync']
+      pluginEntry: '@codelatch/adapter-opencode'
     });
 
     expect(config).toEqual({
       '$schema': 'https://opencode.ai/config.json',
-      plugin: ['.opencode/plugins/codelatch.ts'],
-      command: ['codelatch-bootstrap', 'codelatch-sync']
+      plugin: ['@codelatch/adapter-opencode']
     });
   });
 
-  it('renders thin branded command wrappers', () => {
-    const wrappers = renderOpenCodeCommandWrappers([
+  it('merges plugin entry into existing config without overwriting other keys', () => {
+    const existing = {
+      providers: { myProvider: {} },
+      plugin: ['some-other-plugin']
+    };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['some-other-plugin', '@codelatch/adapter-opencode']);
+    expect(merged.providers).toEqual(existing.providers);
+  });
+
+  it('does not duplicate plugin entry when merging into config that already has it', () => {
+    const existing = {
+      plugin: ['@codelatch/adapter-opencode']
+    };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['@codelatch/adapter-opencode']);
+  });
+
+  it('renders command registration entries for plugin config hook', () => {
+    const commands = renderOpenCodeCommandConfig([
       'codelatch-bootstrap',
       'codelatch-sync'
     ]);
 
-    expect(wrappers).toEqual([
-      {
-        commandName: 'codelatch-bootstrap',
-        displayName: 'CodeLatch Bootstrap',
-        transport: 'plugin-dispatch'
+    expect(commands).toEqual({
+      'codelatch-bootstrap': {
+        template: '',
+        description: 'Initialize CodeLatch in this repository',
+        subtask: true
       },
-      {
-        commandName: 'codelatch-sync',
-        displayName: 'CodeLatch Sync',
-        transport: 'plugin-dispatch'
+      'codelatch-sync': {
+        template: '',
+        description: 'Sync truth docs and detect drift',
+        subtask: true
       }
-    ]);
+    });
+  });
+
+  it('uses fallback description for unknown command names', () => {
+    const commands = renderOpenCodeCommandConfig(['codelatch-custom']);
+
+    expect(commands['codelatch-custom'].description).toBe('CodeLatch: codelatch-custom');
   });
 
   it('invokes a skeletal core boundary through the plugin entry', () => {

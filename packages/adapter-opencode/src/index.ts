@@ -7,5 +7,5 @@ export {
 export { createOpenCodePluginEntry } from './plugin/index.js';
 
 export { renderOpenCodeAgentsMd } from './render/agents-md.js';
-export { renderOpenCodeCommandWrappers } from './render/command-wrappers.js';
-export { renderOpenCodeConfig } from './render/opencode-json.js';
+export { renderOpenCodeCommandConfig } from './render/command-config.js';
+export { renderOpenCodeConfig, mergePluginIntoConfig } from './render/opencode-json.js';

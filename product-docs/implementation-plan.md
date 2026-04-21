@@ -224,7 +224,7 @@ tests/
 templates/
   truth-docs/
   root-files/
-  command-wrappers/
+  command-wrappers/         # file-based wrappers for CLIs that use .md commands (not OpenCode)
 ```
 
 ---
@@ -376,7 +376,7 @@ These commands are planned deliverables of the early repository scaffold and bec
 **Planned tasks:**
 1. implement the OpenCode adapter package skeleton,
 2. create the OpenCode plugin entry module for `.opencode/plugins/`,
-3. define renderers for `AGENTS.md`, `opencode.json`, command wrapper files, and adapter metadata,
+3. define renderers for `AGENTS.md`, `opencode.json` (plugin entry only), command config entries (for plugin `config` hook), and adapter metadata,
 4. map canonical CodeLatch workflow events onto OpenCode runtime hooks and deterministic wrapper checkpoints,
 5. implement the minimal invocation bridge from the OpenCode plugin surface into the shared core dispatcher,
 6. define OpenCode adapter metadata generation.
@@ -458,7 +458,7 @@ These commands are planned deliverables of the early repository scaffold and bec
 5. create or adopt truth docs through the truth-doc registry,
 6. render the OpenCode-native instruction anchor (`AGENTS.md`),
 7. render `.opencode/codelatch/adapter.json`,
-8. render thin branded command wrappers,
+8. register CodeLatch commands via the OpenCode plugin `config` hook (no `.md` wrapper files needed),
 9. ensure the bootstrap summary reflects real emitted surfaces and policies.
 
 **Deliverables:**

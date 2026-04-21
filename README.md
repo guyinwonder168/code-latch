@@ -6,8 +6,8 @@ This repository currently holds the product, technical, and implementation plann
 
 ## Status
 
-- **Stage:** planning and design
-- **Current focus:** finalizing the MVP execution path from truth docs to implementation
+- **Stage:** early implementation (Phase 2)
+- **Current focus:** OpenCode adapter shell with plugin-based command registration
 - **Initial delivery order:** OpenCode, Kilo Code, Claude Code, then Codex
 
 ## What CodeLatch Is Aiming To Do
@@ -49,7 +49,7 @@ That means CodeLatch does **not** assume a single universal external plugin pack
 
 ## Getting Started
 
-There is no runnable product release in this repository yet.
+The project is in early implementation. The OpenCode adapter package (`@codelatch/adapter-opencode`) is the first runnable component.
 
 If you want to understand the project quickly, start here:
 
