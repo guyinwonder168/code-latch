@@ -2,16 +2,22 @@ import { describe, expect, it } from 'vitest';
 import {
   AdapterMetadataSchema,
   ApprovalRecordSchema,
+  ContextBundleManifestSchema,
   DistributionManifestSchema,
   ProjectManifestSchema,
+  RepoStateSchema,
   RunContractSchema,
   TruthDocRegistrySchema,
+  VersionGovernorSchema,
   type AdapterMetadata,
   type ApprovalRecord,
+  type ContextBundleManifest,
   type DistributionManifest,
   type ProjectManifest,
+  type RepoState,
   type RunContract,
-  type TruthDocRegistry
+  type TruthDocRegistry,
+  type VersionGovernor
 } from '@codelatch/schemas';
 
 const projectManifestFixture: ProjectManifest = {
@@ -160,13 +166,59 @@ const runContractFixture: RunContract = {
   rendered_summary_ref: null
 };
 
+const versionGovernorFixture: VersionGovernor = {
+  catalog_version: '2026.04.03',
+  policy: 'pinned',
+  core: '0.1.0',
+  adapters: {
+    opencode: '0.1.0',
+    'claude-code': '0.1.0',
+    codex: '0.1.0',
+    kilocode: '0.1.0'
+  },
+  profiles: {
+    'coding-development': '0.1.0'
+  },
+  procedural_assets: {
+    skills: '2026.04.03',
+    agents: '2026.04.03',
+    instructions: '2026.04.03',
+    host_integrations: '2026.04.03'
+  },
+  packs: {
+    'core/base': '0.1.0'
+  }
+};
+
+const contextBundleFixture: ContextBundleManifest = {
+  bundle_id: 'bundle_bootstrap_01',
+  truth_docs: [
+    'product-docs/codelatch-prd.md',
+    'product-docs/technical-design.md',
+    'product-docs/implementation-plan.md'
+  ],
+  packs: [],
+  incidents: [],
+  hot_snippets: [],
+  bundle_hash: 'sha256:bundle123',
+  created_at: '2026-04-03T20:00:00Z'
+};
+
+const repoStateFixture: RepoState = {
+  git_head: null,
+  tree_status: 'clean-or-not-applicable'
+};
+
 const validCases = [
   ['project manifest', ProjectManifestSchema, projectManifestFixture],
   ['truth-doc registry', TruthDocRegistrySchema, truthDocRegistryFixture],
   ['adapter metadata', AdapterMetadataSchema, adapterMetadataFixture],
   ['distribution manifest', DistributionManifestSchema, distributionManifestFixture],
   ['approval record', ApprovalRecordSchema, approvalRecordFixture],
-  ['run contract', RunContractSchema, runContractFixture]
+  ['run contract', RunContractSchema, runContractFixture],
+  ['version governor', VersionGovernorSchema, versionGovernorFixture],
+  ['context bundle manifest', ContextBundleManifestSchema, contextBundleFixture],
+  ['repo state', RepoStateSchema, repoStateFixture]
 ] as const;
 
 const invalidCases = [
@@ -233,6 +285,30 @@ const invalidCases = [
     {
       ...runContractFixture,
       approval_refs: []
+    }
+  ],
+  [
+    'version governor',
+    VersionGovernorSchema,
+    {
+      ...versionGovernorFixture,
+      policy: 'invalid-policy'
+    }
+  ],
+  [
+    'context bundle manifest',
+    ContextBundleManifestSchema,
+    {
+      ...contextBundleFixture,
+      bundle_hash: 'not-a-sha256'
+    }
+  ],
+  [
+    'repo state',
+    RepoStateSchema,
+    {
+      git_head: null,
+      tree_status: ''
     }
   ]
 ] as const;

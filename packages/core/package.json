@@ -4,5 +4,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@codelatch/schemas": "workspace:*",
+    "@codelatch/workflow-contracts": "workspace:*"
   }
 }

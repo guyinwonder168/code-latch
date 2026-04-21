@@ -23,6 +23,17 @@ export enum WorkflowEvent {
   PROMOTE_REVIEW = 'promote.review'
 }
 
+export enum WorkflowPhase {
+  BOOTSTRAP = 'bootstrap',
+  BRAINSTORM = 'brainstorm',
+  SYNC = 'sync',
+  EXACT_PLAN = 'exact-plan',
+  FREE_RUN = 'free-run',
+  REVIEW = 'review',
+  LEARN = 'learn',
+  PROMOTE = 'promote'
+}
+
 export type BudgetOverflowBehavior = 'stop' | 'trim';
 
 export type CommandSuccess<TData = void> = {
@@ -45,4 +56,31 @@ export type InjectionPolicy = {
   allowHotSnippets: boolean;
   budgetOverflow: BudgetOverflowBehavior;
   reproducibilityRefs: string[];
+};
+
+export type CommandContext = {
+  adapterId: string;
+  projectRoot: string;
+  command: CanonicalCommand;
+};
+
+export type InstructionSurfacePolicy = {
+  native_surfaces: string[];
+  compatibility_surfaces: string[];
+  mirror_policy: string;
+};
+
+export type TruthDocEntry = {
+  path: string;
+  version: string;
+  hash: string;
+};
+
+export type BootstrapResult = {
+  runtimeRoot: string;
+  manifestPath: string;
+  registryPath: string;
+  versionGovernorPath: string;
+  instructionSurfaces: string[];
+  adapterSet: string[];
 };
