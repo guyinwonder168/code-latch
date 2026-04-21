@@ -1,7 +1,8 @@
 /**
  * OpenCode command config renderer — produces command registration entries
- * for the plugin's `config` hook. Commands are registered programmatically
- * rather than as .md files in .opencode/commands/.
+ * for the plugin's `config` hook. CodeLatch chooses programmatic registration
+ * via the config hook rather than file-based .md commands; .opencode/commands/
+ * remains a valid OpenCode surface for other plugins.
  *
  * Each entry maps to:
  *   opencodeConfig.command.<name> = { template, description, subtask }

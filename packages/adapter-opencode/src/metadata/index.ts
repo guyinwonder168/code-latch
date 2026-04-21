@@ -15,12 +15,12 @@ export const createOpenCodeAdapterMetadata = (): AdapterMetadata => ({
   workflowBindings: [
     {
       event: WorkflowEvent.BOOTSTRAP_START,
-      surface: 'runtime-hook',
+      surface: 'config',
       policyId: 'opencode-bootstrap-shell'
     },
     {
       event: WorkflowEvent.EXECUTION_STEP,
-      surface: 'command-wrapper',
+      surface: 'command.execute.before',
       policyId: 'opencode-wrapper-checkpoint'
     }
   ]

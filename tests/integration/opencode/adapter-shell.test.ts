@@ -30,12 +30,12 @@ describe('OpenCode adapter shell', () => {
     expect(metadata.workflowBindings).toEqual([
       {
         event: 'bootstrap.start',
-        surface: 'runtime-hook',
+        surface: 'config',
         policyId: 'opencode-bootstrap-shell'
       },
       {
         event: 'execution.step',
-        surface: 'command-wrapper',
+        surface: 'command.execute.before',
         policyId: 'opencode-wrapper-checkpoint'
       }
     ]);
