@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   OPEN_CODE_ADAPTER_ID,
+  createOpenCodePluginEntry,
   createOpenCodeAdapterMetadata,
-  renderOpenCodeAgentsMd
+  renderOpenCodeAgentsMd,
+  renderOpenCodeConfig,
+  renderOpenCodeCommandWrappers
 } from '@codelatch/adapter-opencode';
 
 describe('OpenCode adapter shell', () => {
@@ -47,5 +50,54 @@ describe('OpenCode adapter shell', () => {
     expect(content).toContain('- codelatch-bootstrap');
     expect(content).toContain('- codelatch-sync');
     expect(content).toContain('OpenCode-native instruction anchor');
+  });
+
+  it('renders deterministic opencode.json content', () => {
+    const config = renderOpenCodeConfig({
+      pluginEntry: '.opencode/plugins/codelatch.ts',
+      commandNames: ['codelatch-bootstrap', 'codelatch-sync']
+    });
+
+    expect(config).toEqual({
+      '$schema': 'https://opencode.ai/config.schema.json',
+      plugins: ['.opencode/plugins/codelatch.ts'],
+      commands: ['codelatch-bootstrap', 'codelatch-sync']
+    });
+  });
+
+  it('renders thin branded command wrappers', () => {
+    const wrappers = renderOpenCodeCommandWrappers([
+      'codelatch-bootstrap',
+      'codelatch-sync'
+    ]);
+
+    expect(wrappers).toEqual([
+      {
+        commandName: 'codelatch-bootstrap',
+        displayName: 'CodeLatch Bootstrap',
+        transport: 'plugin-dispatch'
+      },
+      {
+        commandName: 'codelatch-sync',
+        displayName: 'CodeLatch Sync',
+        transport: 'plugin-dispatch'
+      }
+    ]);
+  });
+
+  it('invokes a skeletal core boundary through the plugin entry', () => {
+    const plugin = createOpenCodePluginEntry();
+
+    expect(
+      plugin.invoke({
+        commandName: 'codelatch-bootstrap'
+      })
+    ).toEqual({
+      status: 'ready',
+      data: {
+        adapter: 'opencode',
+        commandName: 'codelatch-bootstrap'
+      }
+    });
   });
 });
