@@ -86,6 +86,39 @@ describe('OpenCode adapter shell', () => {
     expect(merged.plugin).toEqual(['@codelatch/adapter-opencode']);
   });
 
+  it('recovers from non-array plugin value (string) in existing config', () => {
+    const existing = { plugin: 'some-single-plugin' };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['some-single-plugin', '@codelatch/adapter-opencode']);
+  });
+
+  it('recovers from corrupted plugin value (non-array, non-string) in existing config', () => {
+    const existing = { plugin: 42 };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['@codelatch/adapter-opencode']);
+  });
+
+  it('filters non-string entries from corrupted plugin array', () => {
+    const existing = { plugin: ['valid-plugin', 123, true, 'another'] };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['valid-plugin', 'another', '@codelatch/adapter-opencode']);
+  });
+
+  it('handles missing plugin key in existing config', () => {
+    const existing = { providers: { myProvider: {} } };
+
+    const merged = mergePluginIntoConfig(existing, '@codelatch/adapter-opencode');
+
+    expect(merged.plugin).toEqual(['@codelatch/adapter-opencode']);
+    expect(merged.providers).toEqual(existing.providers);
+  });
+
   it('renders command registration entries for plugin config hook', () => {
     const commands = renderOpenCodeCommandConfig([
       'codelatch-bootstrap',
