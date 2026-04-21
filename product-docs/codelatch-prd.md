@@ -201,7 +201,7 @@ For MVP, CodeLatch must support:
 - drift detection and controlled re-brainstorm flow
 - incident tracking and project learning review flow
 - global promotion suggestion flow
-- CLI-native command wrappers with shared framework behavior (or plugin config hook registration for hosts that support programmatic commands)
+- CLI-native command wrappers with shared framework behavior
 
 ---
 
@@ -382,7 +382,7 @@ Packs may represent:
 - adapter-rendered instruction snippets or templates tied to supported hosts
 
 **Host-integration assets** define host-native wrapper, config, plugin, manifest, hook, and event-binding surfaces, such as:
-- command wrappers (file-based or plugin-registered, per host)
+- command wrappers
 - plugin manifests
 - hook or event registration files
 - host config entries
@@ -557,8 +557,8 @@ CodeLatch must feel native in each supported CLI.
 
 ### 12.3 Shared vs Native
 - behavior remains framework-shared
-- commands are exposed through adapter-native surfaces (file-based wrappers or plugin config hook registration, per host)
-- command wrappers remain thin (or are replaced by programmatic registration where the host supports it)
+- commands are exposed through adapter-native surfaces
+- command wrappers remain thin
 - logic lives in the framework core
 
 ### 12.4 CLI-Native Discovery

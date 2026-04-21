@@ -14,7 +14,6 @@
   },
   "devDependencies": {
     "@codelatch/adapter-base": "workspace:*",
-    "@codelatch/adapter-opencode": "workspace:*",
     "@codelatch/core": "workspace:*",
     "@codelatch/schemas": "workspace:*",
     "@codelatch/shared-utils": "workspace:*",

@@ -759,9 +759,17 @@ The layouts below show the documented project-local or plugin-packaged surfaces 
 ```text
 AGENTS.md
 
-opencode.json              # plugin entry only; commands registered by plugin config hook
+opencode.json
 
 .opencode/
+  commands/
+    codelatch-bootstrap.md
+    codelatch-sync.md
+    codelatch-pack-create.md
+    codelatch-learn.md
+    codelatch-clean.md
+    codelatch-audit.md
+    codelatch-promote.md
   skills/
   agents/
   plugins/
@@ -770,8 +778,6 @@ opencode.json              # plugin entry only; commands registered by plugin co
     adapter.json
     distribution-manifest.json
 ```
-
-Commands are registered programmatically inside the plugin's `config` hook rather than as `.md` files in `.opencode/commands/`. The plugin emits `{ template, description, subtask }` entries for each CodeLatch command and intercepts execution via `command.execute.before`.
 
 #### Claude Code
 
@@ -909,22 +915,6 @@ Each wrapper does only three things:
 1. identify the command,
 2. identify the adapter,
 3. delegate to the shared core runner.
-
-### 9.1.1 OpenCode: Plugin-Registered Commands
-
-OpenCode does not use `.md` command wrapper files. Commands are registered programmatically inside the plugin's `config` hook:
-
-```ts
-config: async (opencodeConfig) => {
-  opencodeConfig.command.codelatch_sync = {
-    template: "",
-    description: "Sync truth docs and detect drift",
-    subtask: true,
-  };
-},
-```
-
-Execution is intercepted via the `command.execute.before` hook, which delegates to the shared core runner. This approach eliminates `.opencode/commands/*.md` files entirely.
 
 ### 9.2 Wrapper Execution Contract
 
@@ -1740,7 +1730,7 @@ This layer is the only canonical authoring source for framework-owned reusable c
 Adapters install reviewed context assets into each host tool's **documented instruction, configuration, and extension surfaces**, rather than assuming a universal `context/` directory.
 
 Examples include:
-- **OpenCode**: `AGENTS.md`, `opencode.json`, `.opencode/skills/`, `.opencode/agents/`, `.opencode/plugins/`, plugin `config` hook for command registration, and `~/.config/opencode/...`
+- **OpenCode**: `AGENTS.md`, `opencode.json`, `.opencode/commands/`, `.opencode/skills/`, `.opencode/agents/`, `.opencode/plugins/`, and `~/.config/opencode/...`
 - **Claude Code**: `CLAUDE.md`, `.claude/CLAUDE.md`, `.claude/skills/`, `.claude/agents/`, `.claude/commands/`, and `.claude-plugin/plugin.json`
 - **Codex**: `AGENTS.md`, `.agents/skills/`, `.agents/plugins/marketplace.json`, `.codex/agents/`, `.codex/config.toml`, optional experimental `.codex/hooks.json`, and `.codex-plugin/plugin.json`
 - **Kilo Code**: `AGENTS.md`, documented OpenCode-compatible `opencode.json` / `.opencode/...` surfaces when used, optional compatibility `CLAUDE.md`, optional `CONTEXT.md`, `kilo.jsonc`, `.kilo/kilo.jsonc`, `.kilo/skills/`, `.kilo/agents/`, and `~/.config/kilo/...`
@@ -2366,7 +2356,7 @@ If incident review suggests a reusable global context update, CodeLatch may prep
 The installer distributes the CodeLatch host-native integration layer to supported CLIs.
 
 It installs:
-- command wrappers (or programmatic command registration for hosts like OpenCode that use plugin config hooks),
+- command wrappers,
 - skills,
 - agents,
 - host-native instruction assets,
@@ -2563,7 +2553,7 @@ This document locks the following MVP decisions:
 - distributed reviewed skills, agents, instruction assets, and host-integration assets,
 - canonical core workflow roles with adapter-native extra roles allowed,
 - thin CLI-native adapters,
-- adapter-specific command registration (file-based wrappers or plugin config hook, per host),
+- adapter-specific command wrapper generation,
 - explicit install selection that excludes unselected packs and bundles,
 - schema-validated persistent state,
 - approval anchoring by truth-doc hashes, scope hash, resolved pack bundle, and adapter/runtime state,
@@ -2585,7 +2575,7 @@ This document locks the following MVP decisions:
 ### 21.2 What Stays Flexible
 
 The following may evolve without changing the core architecture:
-- exact wrapper syntax inside each CLI (or plugin config hook registration syntax for OpenCode),
+- exact wrapper syntax inside each CLI,
 - exact optional project-local install mode behavior per adapter,
 - default add-on profile composition,
 - optional extra pack metadata fields,
@@ -2599,7 +2589,7 @@ This technical design resolves the PRD open items and newly locked workflow deci
 
 1. **exact adapter package architecture** → defined in Sections 6 and 8.
 2. **exact folder layouts per supported CLI** → defined in Sections 7 and 8.
-3. **exact command registration per CLI** → file-based wrappers defined in Section 9, OpenCode plugin config hook defined in Section 9.1.1.
+3. **exact command wrapper implementation per CLI** → defined in Section 9.
 4. **exact persistent file formats and schemas** → defined in Section 10.
 5. **exact proposal/review folder layouts** → defined in Sections 10 and 16.
 6. **exact upgrade/catalog verification mechanism** → defined in Section 17.
