@@ -59,9 +59,9 @@ describe('OpenCode adapter shell', () => {
     });
 
     expect(config).toEqual({
-      '$schema': 'https://opencode.ai/config.schema.json',
-      plugins: ['.opencode/plugins/codelatch.ts'],
-      commands: ['codelatch-bootstrap', 'codelatch-sync']
+      '$schema': 'https://opencode.ai/config.json',
+      plugin: ['.opencode/plugins/codelatch.ts'],
+      command: ['codelatch-bootstrap', 'codelatch-sync']
     });
   });
 

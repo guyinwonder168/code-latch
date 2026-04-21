@@ -5,15 +5,15 @@ export type OpenCodeConfigInput = {
 
 export type OpenCodeConfig = {
   $schema: string;
-  plugins: string[];
-  commands: string[];
+  plugin: string[];
+  command: string[];
 };
 
 export const renderOpenCodeConfig = ({
   pluginEntry,
   commandNames
 }: OpenCodeConfigInput): OpenCodeConfig => ({
-  $schema: 'https://opencode.ai/config.schema.json',
-  plugins: [pluginEntry],
-  commands: [...commandNames]
+  $schema: 'https://opencode.ai/config.json',
+  plugin: [pluginEntry],
+  command: [...commandNames]
 });
