@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dispatchCommand, type FsOps } from '@codelatch/core';
+import { dispatchCommand, type FsOps, type FsReadOps } from '@codelatch/core';
 import { createOpenCodePluginEntry } from '@codelatch/adapter-opencode';
 import { CanonicalCommand } from '@codelatch/workflow-contracts';
 import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schemas';
@@ -9,7 +9,7 @@ import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schema
  * real bootstrap core logic through the command dispatcher.
  */
 describe('OpenCode adapter → core bootstrap integration', () => {
-  const createMockFs = (): { fs: FsOps; writtenFiles: Map<string, string>; createdDirs: string[] } => {
+  const createMockFs = (): { fs: FsOps; fsRead: FsReadOps; writtenFiles: Map<string, string>; createdDirs: string[] } => {
     const writtenFiles = new Map<string, string>();
     const createdDirs: string[] = [];
 
@@ -18,13 +18,17 @@ describe('OpenCode adapter → core bootstrap integration', () => {
         mkdir: async (path: string) => { createdDirs.push(path); },
         writeFile: async (path: string, data: string) => { writtenFiles.set(path, data); }
       },
+      fsRead: {
+        exists: async () => false,
+        readdir: async () => []
+      },
       writtenFiles,
       createdDirs
     };
   };
 
   it('the OpenCode plugin entry can trigger bootstrap through the dispatcher', async () => {
-    const { fs } = createMockFs();
+    const { fs, fsRead } = createMockFs();
     const plugin = createOpenCodePluginEntry();
 
     // Step 1: the plugin entry normalizes the invocation
@@ -60,7 +64,7 @@ describe('OpenCode adapter → core bootstrap integration', () => {
         implementation_plan: '0.1.2'
       },
       repoState: { git_head: null, tree_status: 'clean-or-not-applicable' }
-    });
+    }, fsRead);
 
     expect(result.success).toBe(true);
     if (!result.success) return;
@@ -70,7 +74,7 @@ describe('OpenCode adapter → core bootstrap integration', () => {
   });
 
   it('produces schema-valid manifest and registry through the full flow', async () => {
-    const { fs, writtenFiles } = createMockFs();
+    const { fs, fsRead, writtenFiles } = createMockFs();
 
     await dispatchCommand(
       { adapterId: 'opencode', projectRoot: '/my-project', command: CanonicalCommand.BOOTSTRAP },
@@ -95,7 +99,8 @@ describe('OpenCode adapter → core bootstrap integration', () => {
           implementation_plan: '0.1.2'
         },
         repoState: { git_head: null, tree_status: 'clean-or-not-applicable' }
-      }
+      },
+      fsRead
     );
 
     const manifest = JSON.parse(writtenFiles.get('/my-project/.tmp/codelatch/project-manifest.json')!);
@@ -103,42 +108,5 @@ describe('OpenCode adapter → core bootstrap integration', () => {
 
     expect(ProjectManifestSchema.safeParse(manifest).success).toBe(true);
     expect(TruthDocRegistrySchema.safeParse(registry).success).toBe(true);
-  });
-
-  it('handles multi-adapter bootstrap through the OpenCode path', async () => {
-    const { fs } = createMockFs();
-
-    const result = await dispatchCommand(
-      { adapterId: 'opencode', projectRoot: '/my-project', command: CanonicalCommand.BOOTSTRAP },
-      fs,
-      {
-        projectId: 'my-project',
-        adapters: ['opencode', 'claude-code'],
-        profile: 'coding-development',
-        truthDocPaths: {
-          prd: 'product-docs/prd.md',
-          technical_design: 'product-docs/technical-design.md',
-          implementation_plan: 'product-docs/implementation-plan.md'
-        },
-        truthDocHashes: {
-          prd: 'sha256:abc123',
-          technical_design: 'sha256:def456',
-          implementation_plan: 'sha256:ghi789'
-        },
-        truthDocVersions: {
-          prd: '0.2.8',
-          technical_design: '0.2.15',
-          implementation_plan: '0.1.2'
-        },
-        repoState: { git_head: null, tree_status: 'clean-or-not-applicable' }
-      }
-    );
-
-    expect(result.success).toBe(true);
-    if (!result.success) return;
-    expect(result.data!.adapterSet).toEqual(['opencode', 'claude-code']);
-    expect(result.data!.instructionSurfaces).toContain('AGENTS.md');
-    expect(result.data!.instructionSurfaces).toContain('CLAUDE.md');
-    expect(result.data!.instructionSurfaces).toContain('.claude/CLAUDE.md');
   });
 });

@@ -3,7 +3,7 @@ import {
   OPEN_CODE_ADAPTER_ID,
   createOpenCodePluginEntry,
   createOpenCodeAdapterMetadata,
-  renderOpenCodeAgentsMd,
+  renderAgentsMd,
   renderOpenCodeConfig,
   mergePluginIntoConfig,
   renderOpenCodeCommandConfig
@@ -41,16 +41,36 @@ describe('OpenCode adapter shell', () => {
     ]);
   });
 
-  it('renders deterministic AGENTS.md content for OpenCode', () => {
-    const content = renderOpenCodeAgentsMd({
-      adapterDisplayName: 'OpenCode Adapter',
-      commands: ['codelatch-bootstrap', 'codelatch-sync']
+  it('renders AGENTS.md following Section 7.5 contract', () => {
+    const content = renderAgentsMd({
+      truthDocPaths: {
+        prd: 'product-docs/prd.md',
+        technicalDesign: 'product-docs/technical-design.md',
+        implementationPlan: 'product-docs/implementation-plan.md'
+      }
     });
 
-    expect(content).toContain('# OpenCode Adapter');
-    expect(content).toContain('- codelatch-bootstrap');
-    expect(content).toContain('- codelatch-sync');
-    expect(content).toContain('OpenCode-native instruction anchor');
+    expect(content).toContain('# AGENTS.md');
+    expect(content).toContain('This repository uses CodeLatch.');
+    expect(content).toContain('## Source of Truth');
+    expect(content).toContain('product-docs/prd.md');
+    expect(content).toContain('product-docs/technical-design.md');
+    expect(content).toContain('product-docs/implementation-plan.md');
+    expect(content).toContain('## Non-Negotiable Reminders');
+  });
+
+  it('renders AGENTS.md with optional local context path', () => {
+    const content = renderAgentsMd({
+      truthDocPaths: {
+        prd: 'product-docs/prd.md',
+        technicalDesign: 'product-docs/technical-design.md',
+        implementationPlan: 'product-docs/implementation-plan.md'
+      },
+      localContextPath: '.opencode/context/core'
+    });
+
+    expect(content).toContain('## Local Context');
+    expect(content).toContain('.opencode/context/core');
   });
 
   it('renders minimal opencode.json with only plugin entry', () => {

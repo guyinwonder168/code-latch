@@ -10,6 +10,12 @@ import {
   resolveInstructionSurfacePolicy,
   createBootstrapEnvelope,
   computeBootstrapAnchors,
+  detectRepoState,
+  decideBootstrapMode,
+  suggestAdapterSelection,
+  resolveTruthDocPaths,
+  buildTruthDocRegistryInput,
+  createBootstrapSummary,
   dispatchCommand
 } from '@codelatch/core';
 import {
@@ -41,6 +47,12 @@ describe('core and shared utils exports', () => {
     expect(typeof resolveInstructionSurfacePolicy).toBe('function');
     expect(typeof createBootstrapEnvelope).toBe('function');
     expect(typeof computeBootstrapAnchors).toBe('function');
+    expect(typeof detectRepoState).toBe('function');
+    expect(typeof decideBootstrapMode).toBe('function');
+    expect(typeof suggestAdapterSelection).toBe('function');
+    expect(typeof resolveTruthDocPaths).toBe('function');
+    expect(typeof buildTruthDocRegistryInput).toBe('function');
+    expect(typeof createBootstrapSummary).toBe('function');
     expect(typeof dispatchCommand).toBe('function');
   });
 });
