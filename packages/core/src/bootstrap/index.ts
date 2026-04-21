@@ -4,3 +4,8 @@ export { createTruthDocRegistry, type TruthDocRegistryInput } from './registry.j
 export { resolveInstructionSurfacePolicy } from './policy.js';
 export { createBootstrapEnvelope, type BootstrapEnvelope, type CreateBootstrapEnvelopeInput } from './envelope.js';
 export { computeBootstrapAnchors, type BootstrapAnchors, type ComputeBootstrapAnchorsInput } from './anchors.js';
+export { detectRepoState, type RepoDetectionResult, type TruthDocDetection, type HostDirDetection, type FsReadOps } from './detection.js';
+export { decideBootstrapMode, type BootstrapMode, type BootstrapDecision } from './adopt.js';
+export { suggestAdapterSelection, type AdapterSelectionSuggestion } from './adapter-selection.js';
+export { resolveTruthDocPaths, buildTruthDocRegistryInput } from './truth-doc-adopt.js';
+export { createBootstrapSummary, type BootstrapSummary } from './summary.js';

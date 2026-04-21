@@ -20,14 +20,28 @@ export {
   resolveInstructionSurfacePolicy,
   createBootstrapEnvelope,
   computeBootstrapAnchors,
+  detectRepoState,
+  decideBootstrapMode,
+  suggestAdapterSelection,
+  resolveTruthDocPaths,
+  buildTruthDocRegistryInput,
+  createBootstrapSummary,
   type RuntimeRootPaths,
   type FsOps,
+  type FsReadOps,
   type CreateManifestInput,
   type TruthDocRegistryInput,
   type BootstrapEnvelope,
   type CreateBootstrapEnvelopeInput,
   type BootstrapAnchors,
-  type ComputeBootstrapAnchorsInput
+  type ComputeBootstrapAnchorsInput,
+  type RepoDetectionResult,
+  type TruthDocDetection,
+  type HostDirDetection,
+  type BootstrapMode,
+  type BootstrapDecision,
+  type AdapterSelectionSuggestion,
+  type BootstrapSummary
 } from './bootstrap/index.js';
 
 export { dispatchCommand, type BootstrapInput } from './dispatcher.js';
