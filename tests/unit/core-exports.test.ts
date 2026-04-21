@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   CODELATCH_VERSION,
   createCoreResult,
-  type CoreResult
+  type CoreResult,
+  createRuntimeRootPaths,
+  initializeRuntimeRoot,
+  createProjectManifest,
+  createTruthDocRegistry,
+  resolveInstructionSurfacePolicy,
+  createBootstrapEnvelope,
+  computeBootstrapAnchors,
+  dispatchCommand
 } from '@codelatch/core';
 import {
   identity,
@@ -23,5 +31,16 @@ describe('core and shared utils exports', () => {
 
     expect(identity('value')).toBe('value');
     expect(values).toEqual(['a', 'b']);
+  });
+
+  it('exports bootstrap module functions', () => {
+    expect(typeof createRuntimeRootPaths).toBe('function');
+    expect(typeof initializeRuntimeRoot).toBe('function');
+    expect(typeof createProjectManifest).toBe('function');
+    expect(typeof createTruthDocRegistry).toBe('function');
+    expect(typeof resolveInstructionSurfacePolicy).toBe('function');
+    expect(typeof createBootstrapEnvelope).toBe('function');
+    expect(typeof computeBootstrapAnchors).toBe('function');
+    expect(typeof dispatchCommand).toBe('function');
   });
 });

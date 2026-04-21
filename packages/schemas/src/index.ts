@@ -31,7 +31,7 @@ const truthDocEntrySchema = z.strictObject({
   hash: truthDocHashSchema
 });
 
-const repoStateSchema = z.strictObject({
+export const RepoStateSchema = z.strictObject({
   git_head: nullableStringSchema,
   tree_status: nonEmptyStringSchema
 });
@@ -132,7 +132,7 @@ export const ApprovalRecordSchema = z.strictObject({
   resolved_pack_bundle_ref: nonEmptyStringSchema,
   adapter_set_ref: nonEmptyStringSchema,
   workspace_ref: nullableStringSchema,
-  repo_state: repoStateSchema,
+  repo_state: RepoStateSchema,
   related_doc_ref: nonEmptyStringSchema,
   approved_at: nonEmptyStringSchema
 });
@@ -149,9 +149,41 @@ export const RunContractSchema = z.strictObject({
   truth_doc_hashes: truthDocHashesSchema,
   resolved_pack_bundle_ref: nonEmptyStringSchema,
   adapter_set_ref: nonEmptyStringSchema,
-  repo_state: repoStateSchema,
+  repo_state: RepoStateSchema,
   stop_conditions: z.array(nonEmptyStringSchema).min(1),
   rendered_summary_ref: nullableStringSchema
+});
+
+export const VersionGovernorSchema = z.strictObject({
+  catalog_version: nonEmptyStringSchema,
+  policy: z.enum(['pinned', 'latest']),
+  core: nonEmptyStringSchema,
+  adapters: z.strictObject({
+    opencode: nonEmptyStringSchema,
+    'claude-code': nonEmptyStringSchema,
+    codex: nonEmptyStringSchema,
+    kilocode: nonEmptyStringSchema
+  }),
+  profiles: z.strictObject({
+    'coding-development': nonEmptyStringSchema
+  }),
+  procedural_assets: z.strictObject({
+    skills: nonEmptyStringSchema,
+    agents: nonEmptyStringSchema,
+    instructions: nonEmptyStringSchema,
+    host_integrations: nonEmptyStringSchema
+  }),
+  packs: z.record(nonEmptyStringSchema, nonEmptyStringSchema)
+});
+
+export const ContextBundleManifestSchema = z.strictObject({
+  bundle_id: nonEmptyStringSchema,
+  truth_docs: z.array(nonEmptyStringSchema),
+  packs: z.array(nonEmptyStringSchema),
+  incidents: z.array(nonEmptyStringSchema),
+  hot_snippets: z.array(nonEmptyStringSchema),
+  bundle_hash: truthDocHashSchema,
+  created_at: nonEmptyStringSchema
 });
 
 export type ProjectManifest = z.infer<typeof ProjectManifestSchema>;
@@ -160,5 +192,10 @@ export type AdapterMetadata = z.infer<typeof AdapterMetadataSchema>;
 export type DistributionManifest = z.infer<typeof DistributionManifestSchema>;
 export type ApprovalRecord = z.infer<typeof ApprovalRecordSchema>;
 export type RunContract = z.infer<typeof RunContractSchema>;
+export type VersionGovernor = z.infer<typeof VersionGovernorSchema>;
+export type ContextBundleManifest = z.infer<typeof ContextBundleManifestSchema>;
+
+export type AdapterId = z.infer<typeof adapterIdSchema>;
+export type RepoState = z.infer<typeof RepoStateSchema>;
 
 export const schemasPackageName = '@codelatch/schemas';
