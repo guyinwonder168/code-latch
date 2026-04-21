@@ -1,0 +1,13 @@
+{
+  "name": "@codelatch/adapter-opencode",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@codelatch/adapter-base": "workspace:*",
+    "@codelatch/core": "workspace:*",
+    "@codelatch/workflow-contracts": "workspace:*"
+  }
+}
