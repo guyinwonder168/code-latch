@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dispatchCommand, type FsOps, type FsReadOps } from '@codelatch/core';
 import { createOpenCodePluginEntry } from '@codelatch/adapter-opencode';
-import { CanonicalCommand } from '@codelatch/workflow-contracts';
+import { CanonicalCommand, type BootstrapResult } from '@codelatch/workflow-contracts';
 import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schemas';
 
 /**
@@ -20,7 +20,8 @@ describe('OpenCode adapter → core bootstrap integration', () => {
       },
       fsRead: {
         exists: async () => false,
-        readdir: async () => []
+        readdir: async () => [],
+        readFile: async () => ''
       },
       writtenFiles,
       createdDirs
@@ -68,9 +69,10 @@ describe('OpenCode adapter → core bootstrap integration', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect(result.data!.runtimeRoot).toBe('/my-project/.tmp/codelatch');
-    expect(result.data!.adapterSet).toEqual(['opencode']);
-    expect(result.data!.instructionSurfaces).toContain('AGENTS.md');
+    const data = result.data! as BootstrapResult;
+    expect(data.runtimeRoot).toBe('/my-project/.tmp/codelatch');
+    expect(data.adapterSet).toEqual(['opencode']);
+    expect(data.instructionSurfaces).toContain('AGENTS.md');
   });
 
   it('produces schema-valid manifest and registry through the full flow', async () => {

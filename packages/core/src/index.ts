@@ -44,4 +44,30 @@ export {
   type BootstrapSummary
 } from './bootstrap/index.js';
 
-export { dispatchCommand, type BootstrapInput } from './dispatcher.js';
+export {
+  buildDriftInputs,
+  classifyDrift,
+  validateInstructionSurfaces,
+  checkAnchorStaleness,
+  buildProposedWrites,
+  buildSyncReport,
+  shouldMaterializeReport,
+  executeSyncPipeline,
+  type DriftInputs,
+  type BuildDriftInputsInput,
+  type DriftClassification,
+  type SurfaceValidationInput,
+  type SurfaceValidationResult,
+  type ApprovalAnchors,
+  type CheckAnchorStalenessInput,
+  type AnchorStalenessResult,
+  type ProposedWritesInput,
+  type ProposedWritesResult,
+  type SyncReportInput,
+  type MaterializationInput,
+  type MaterializationDecision,
+  type SyncPipelineInput,
+  type SyncPipelineResult
+} from './sync/index.js';
+
+export { dispatchCommand, type BootstrapInput, type SyncInput } from './dispatcher.js';

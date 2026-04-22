@@ -2,17 +2,18 @@
  * Core command dispatcher.
  *
  * Routes a canonical CodeLatch command to the appropriate
- * handler. For Phase 4, BOOTSTRAP has a full end-to-end
- * pipeline; other commands return a "not yet implemented" result.
+ * handler. BOOTSTRAP and SYNC have full end-to-end pipelines;
+ * other commands return a "not yet implemented" result.
  */
 
 import {
   CanonicalCommand,
   type CommandContext,
   type CommandResult,
-  type BootstrapResult
+  type BootstrapResult,
+  type SyncResult
 } from '@codelatch/workflow-contracts';
-import type { AdapterId } from '@codelatch/schemas';
+import type { AdapterId, ProjectManifest, TruthDocRegistry, RepoState } from '@codelatch/schemas';
 import {
   createRuntimeRootPaths,
   initializeRuntimeRoot,
@@ -30,6 +31,10 @@ import {
   type FsOps,
   type FsReadOps
 } from './bootstrap/index.js';
+import {
+  executeSyncPipeline,
+  type ApprovalAnchors
+} from './sync/index.js';
 import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schemas';
 
 export type BootstrapInput = {
@@ -41,6 +46,16 @@ export type BootstrapInput = {
   truthDocVersions?: { prd: string; technical_design: string; implementation_plan: string };
   repoState?: { git_head: string | null; tree_status: string };
   localContextPath?: string;
+};
+
+export type SyncInput = {
+  currentTruthDocHashes: { prd: string; technical_design: string; implementation_plan: string };
+  actualInstructionSurfaces: string[];
+  currentAdapterSet: string[];
+  currentRepoState: RepoState;
+  currentInstructionSurfaceHash: string;
+  changedFiles?: string[];
+  diffSummary?: string;
 };
 
 /**
@@ -178,6 +193,117 @@ const executeBootstrap = async (
 };
 
 /**
+ * Execute the full sync pipeline.
+ *
+ * 1. Read manifest and registry from disk
+ * 2. Read anchors from disk (or compute from manifest)
+ * 3. Run the 9-step sync pipeline
+ * 4. Return sync result
+ *
+ * If manifest, registry, or anchors cannot be loaded,
+ * returns a failure result.
+ */
+const executeSync = async (
+  projectRoot: string,
+  input: SyncInput,
+  fsRead: FsReadOps
+): Promise<CommandResult<SyncResult>> => {
+  const paths = createRuntimeRootPaths(projectRoot);
+
+  // Step 1: Read manifest from disk
+  const manifestExists = await fsRead.exists(paths.manifest);
+  if (!manifestExists) {
+    return { success: false, error: 'Sync requires a bootstrapped project: manifest not found' };
+  }
+
+  const registryExists = await fsRead.exists(paths.registry);
+  if (!registryExists) {
+    return { success: false, error: 'Sync requires a bootstrapped project: registry not found' };
+  }
+
+  const manifestRaw = await fsRead.readFile(paths.manifest);
+  const registryRaw = await fsRead.readFile(paths.registry);
+
+  let manifest: ProjectManifest;
+  let registry: TruthDocRegistry;
+
+  try {
+    const manifestParsed = ProjectManifestSchema.safeParse(JSON.parse(manifestRaw));
+    if (!manifestParsed.success) {
+      return { success: false, error: `Invalid manifest: ${manifestParsed.error.message}` };
+    }
+    manifest = manifestParsed.data;
+  } catch {
+    return { success: false, error: 'Failed to parse manifest JSON' };
+  }
+
+  try {
+    const registryParsed = TruthDocRegistrySchema.safeParse(JSON.parse(registryRaw));
+    if (!registryParsed.success) {
+      return { success: false, error: `Invalid registry: ${registryParsed.error.message}` };
+    }
+    registry = registryParsed.data;
+  } catch {
+    return { success: false, error: 'Failed to parse registry JSON' };
+  }
+
+  // Step 2: Read or reconstruct anchors
+  const anchorsPath = `${paths.root}/anchors.json`;
+  const anchorsExists = await fsRead.exists(anchorsPath);
+
+  let anchors: ApprovalAnchors;
+  if (anchorsExists) {
+    try {
+      const anchorsRaw = await fsRead.readFile(anchorsPath);
+      anchors = JSON.parse(anchorsRaw) as ApprovalAnchors;
+    } catch {
+      return { success: false, error: 'Failed to parse anchors JSON' };
+    }
+  } else {
+    // Reconstruct anchors from manifest + registry data
+    anchors = {
+      truth_doc_hashes: {
+        prd: registry.truth_docs.prd.hash,
+        technical_design: registry.truth_docs.technical_design.hash,
+        implementation_plan: registry.truth_docs.implementation_plan.hash
+      },
+      adapter_set: manifest.adapters,
+      repo_state: input.currentRepoState,
+      instruction_surface_hash: input.currentInstructionSurfaceHash,
+      computed_at: manifest.created_at
+    };
+  }
+
+  // Step 3: Run the 9-step sync pipeline
+  const pipelineResult = executeSyncPipeline({
+    manifest,
+    registry,
+    anchors,
+    currentTruthDocHashes: input.currentTruthDocHashes,
+    actualInstructionSurfaces: input.actualInstructionSurfaces,
+    currentAdapterSet: input.currentAdapterSet,
+    currentRepoState: input.currentRepoState,
+    currentInstructionSurfaceHash: input.currentInstructionSurfaceHash,
+    changedFiles: input.changedFiles,
+    diffSummary: input.diffSummary
+  });
+
+  // Step 4: Build the sync result
+  return {
+    success: true,
+    data: {
+      highestDriftClass: pipelineResult.highestDriftClass,
+      findings: pipelineResult.findings,
+      proposedWrites: pipelineResult.proposedWrites,
+      requiresHardStop: pipelineResult.requiresHardStop,
+      requiresRebrainstorm: pipelineResult.requiresRebrainstorm,
+      reportMaterialized: pipelineResult.reportMaterialized,
+      reportPath: pipelineResult.reportPath
+    }
+  };
+};
+
+/**
  * Render AGENTS.md content for OpenCode-family adapters.
  * Follows Section 7.5 contract.
  */
@@ -255,18 +381,27 @@ export const dispatchCommand = async (
   context: CommandContext,
   fs: FsOps,
   bootstrapInput?: BootstrapInput,
-  fsRead?: FsReadOps
-): Promise<CommandResult<BootstrapResult>> => {
+  fsRead?: FsReadOps,
+  syncInput?: SyncInput
+): Promise<CommandResult<BootstrapResult | SyncResult>> => {
+  const readOps: FsReadOps = fsRead ?? {
+    exists: async () => false,
+    readdir: async () => [],
+    readFile: async () => ''
+  };
+
   switch (context.command) {
     case CanonicalCommand.BOOTSTRAP: {
       if (!bootstrapInput) {
         return { success: false, error: 'Bootstrap requires input parameters' };
       }
-      const readOps: FsReadOps = fsRead ?? {
-        exists: async () => false,
-        readdir: async () => []
-      };
       return executeBootstrap(context.projectRoot, bootstrapInput, fs, readOps);
+    }
+    case CanonicalCommand.SYNC: {
+      if (!syncInput) {
+        return { success: false, error: 'Sync requires input parameters' };
+      }
+      return executeSync(context.projectRoot, syncInput, readOps);
     }
     default:
       return { success: false, error: `Command ${context.command} is not yet implemented` };

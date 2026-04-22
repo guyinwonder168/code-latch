@@ -176,6 +176,33 @@ export const VersionGovernorSchema = z.strictObject({
   packs: z.record(nonEmptyStringSchema, nonEmptyStringSchema)
 });
 
+const driftFindingSchema = z.strictObject({
+  kind: nonEmptyStringSchema,
+  drift_class: z.number().int().min(0).max(2),
+  severity: z.enum(['low', 'medium', 'high']),
+  message: nonEmptyStringSchema,
+  pointers: z.array(nonEmptyStringSchema)
+});
+
+const proposedWriteSchema = z.strictObject({
+  target_path: nonEmptyStringSchema,
+  description: nonEmptyStringSchema,
+  drift_class: z.number().int().min(0).max(2),
+  requires_approval: z.boolean()
+});
+
+export const SyncReportSchema = z.strictObject({
+  run_id: nonEmptyStringSchema,
+  command: z.literal('codelatch-sync'),
+  highest_drift_class: z.number().int().min(0).max(2),
+  findings: z.array(driftFindingSchema),
+  proposed_writes: z.array(proposedWriteSchema),
+  requires_hard_stop: z.boolean(),
+  requires_rebrainstorm: z.boolean(),
+  report_doc_ref: nonEmptyStringSchema,
+  generated_at: nonEmptyStringSchema
+});
+
 export const ContextBundleManifestSchema = z.strictObject({
   bundle_id: nonEmptyStringSchema,
   truth_docs: z.array(nonEmptyStringSchema),
@@ -194,6 +221,9 @@ export type ApprovalRecord = z.infer<typeof ApprovalRecordSchema>;
 export type RunContract = z.infer<typeof RunContractSchema>;
 export type VersionGovernor = z.infer<typeof VersionGovernorSchema>;
 export type ContextBundleManifest = z.infer<typeof ContextBundleManifestSchema>;
+export type SyncReport = z.infer<typeof SyncReportSchema>;
+export type DriftFindingSchema = z.infer<typeof driftFindingSchema>;
+export type ProposedWriteSchema = z.infer<typeof proposedWriteSchema>;
 
 export type AdapterId = z.infer<typeof adapterIdSchema>;
 export type RepoState = z.infer<typeof RepoStateSchema>;
