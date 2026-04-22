@@ -11,7 +11,12 @@ import {
   type CommandContext,
   type CommandResult,
   type BootstrapResult,
-  type SyncResult
+  type SyncResult,
+  type AuditResult,
+  type PackCreateResult,
+  type LearnResult,
+  type CleanResult,
+  type PromoteResult
 } from '@codelatch/workflow-contracts';
 import type { AdapterId, ProjectManifest, TruthDocRegistry, RepoState } from '@codelatch/schemas';
 import {
@@ -35,6 +40,26 @@ import {
   executeSyncPipeline,
   type ApprovalAnchors
 } from './sync/index.js';
+import {
+  executeAuditPipeline,
+  type AuditInput
+} from './audit/index.js';
+import {
+  executePackCreatePipeline,
+  type PackCreateInput
+} from './pack-create/index.js';
+import {
+  executeLearnPipeline,
+  type LearnInput
+} from './learn/index.js';
+import {
+  executeCleanPipeline,
+  type CleanInput
+} from './clean/index.js';
+import {
+  executePromotePipeline,
+  type PromoteInput
+} from './promote/index.js';
 import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schemas';
 
 export type BootstrapInput = {
@@ -382,8 +407,13 @@ export const dispatchCommand = async (
   fs: FsOps,
   bootstrapInput?: BootstrapInput,
   fsRead?: FsReadOps,
-  syncInput?: SyncInput
-): Promise<CommandResult<BootstrapResult | SyncResult>> => {
+  syncInput?: SyncInput,
+  auditInput?: AuditInput,
+  packCreateInput?: PackCreateInput,
+  learnInput?: LearnInput,
+  cleanInput?: CleanInput,
+  promoteInput?: PromoteInput
+): Promise<CommandResult<BootstrapResult | SyncResult | AuditResult | PackCreateResult | LearnResult | CleanResult | PromoteResult>> => {
   const readOps: FsReadOps = fsRead ?? {
     exists: async () => false,
     readdir: async () => [],
@@ -402,6 +432,36 @@ export const dispatchCommand = async (
         return { success: false, error: 'Sync requires input parameters' };
       }
       return executeSync(context.projectRoot, syncInput, readOps);
+    }
+    case CanonicalCommand.AUDIT: {
+      if (!auditInput) {
+        return { success: false, error: 'Audit requires input parameters' };
+      }
+      return executeAuditPipeline(context.projectRoot, auditInput, readOps);
+    }
+    case CanonicalCommand.PACK_CREATE: {
+      if (!packCreateInput) {
+        return { success: false, error: 'Pack-create requires input parameters' };
+      }
+      return executePackCreatePipeline(context.projectRoot, packCreateInput, readOps);
+    }
+    case CanonicalCommand.LEARN: {
+      if (!learnInput) {
+        return { success: false, error: 'Learn requires input parameters' };
+      }
+      return executeLearnPipeline(context.projectRoot, learnInput, readOps);
+    }
+    case CanonicalCommand.CLEAN: {
+      if (!cleanInput) {
+        return { success: false, error: 'Clean requires input parameters' };
+      }
+      return executeCleanPipeline(context.projectRoot, cleanInput, readOps, fs);
+    }
+    case CanonicalCommand.PROMOTE: {
+      if (!promoteInput) {
+        return { success: false, error: 'Promote requires input parameters' };
+      }
+      return executePromotePipeline(context.projectRoot, promoteInput, readOps);
     }
     default:
       return { success: false, error: `Command ${context.command} is not yet implemented` };
