@@ -4,7 +4,11 @@ export {
   OPEN_CODE_ADAPTER_ID,
   createOpenCodeAdapterMetadata
 } from './metadata/index.js';
-export { createOpenCodePluginEntry } from './plugin/index.js';
+export {
+  codelatchPlugin,
+  type OpenCodePluginContext,
+  type OpenCodePluginHooks
+} from './plugin/index.js';
 
 export { renderAgentsMd, type AgentsMdInput } from './render/agents-md.js';
 export { renderOpenCodeCommandConfig, type OpenCodeCommandEntry, type OpenCodeCommandConfig } from './render/command-config.js';

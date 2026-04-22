@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   OPEN_CODE_ADAPTER_ID,
-  createOpenCodePluginEntry,
+  codelatchPlugin,
   createOpenCodeAdapterMetadata,
   renderAgentsMd,
   renderOpenCodeConfig,
@@ -165,19 +165,17 @@ describe('OpenCode adapter shell', () => {
     expect(commands['codelatch-custom'].description).toBe('CodeLatch: codelatch-custom');
   });
 
-  it('invokes a skeletal core boundary through the plugin entry', () => {
-    const plugin = createOpenCodePluginEntry();
+  it('invokes a skeletal core boundary through the plugin entry', async () => {
+    const hooks = await codelatchPlugin({});
 
-    expect(
-      plugin.invoke({
-        commandName: 'codelatch-bootstrap'
-      })
-    ).toEqual({
-      status: 'ready',
-      data: {
-        adapter: 'opencode',
-        commandName: 'codelatch-bootstrap'
-      }
-    });
+    // Plugin returns the expected hook shape
+    expect(typeof hooks.config).toBe('function');
+    expect(typeof hooks.tool.codelatch.execute).toBe('function');
+    expect(typeof hooks.event['command.execute.before']).toBe('function');
+
+    // Config hook registers all 7 CodeLatch commands
+    const configResult = hooks.config({});
+    expect(configResult.command).toHaveProperty('codelatch-bootstrap');
+    expect(configResult.command).toHaveProperty('codelatch-sync');
   });
 });

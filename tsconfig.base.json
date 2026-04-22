@@ -16,6 +16,8 @@
       "@codelatch/schemas": ["packages/schemas/src/index.ts"],
       "@codelatch/workflow-contracts": ["packages/workflow-contracts/src/index.ts"],
       "@codelatch/adapter-base": ["packages/adapter-base/src/index.ts"],
+      "@codelatch/adapter-opencode": ["packages/adapter-opencode/src/index.ts"],
+      "@codelatch/adapter-opencode/plugin": ["packages/adapter-opencode/src/plugin/index.ts"],
       "@codelatch/shared-utils": ["packages/shared-utils/src/index.ts"]
     }
   }
