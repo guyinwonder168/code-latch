@@ -1,0 +1,8 @@
+{
+  "truth_docs": {
+    "prd": { "path": "product-docs/prd.md", "version": "0.2.8", "hash": "sha256:aaa111" },
+    "technical_design": { "path": "product-docs/technical-design.md", "version": "0.2.15", "hash": "sha256:bbb222" },
+    "implementation_plan": { "path": "product-docs/implementation-plan.md", "version": "0.1.2", "hash": "sha256:ccc333" }
+  },
+  "updated_at": "2025-01-01T00:00:00.000Z"
+}

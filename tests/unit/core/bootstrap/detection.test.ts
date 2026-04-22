@@ -3,7 +3,8 @@ import { detectRepoState, type FsReadOps } from '@codelatch/core';
 
 const createFsRead = (files: Set<string>): FsReadOps => ({
   exists: async (path: string) => files.has(path),
-  readdir: async () => []
+  readdir: async () => [],
+  readFile: async () => ''
 });
 
 describe('repo detection', () => {

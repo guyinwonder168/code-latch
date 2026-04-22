@@ -84,3 +84,34 @@ export type BootstrapResult = {
   instructionSurfaces: string[];
   adapterSet: string[];
 };
+
+export enum DriftClass {
+  CLASS_0 = 0,
+  CLASS_1 = 1,
+  CLASS_2 = 2
+}
+
+export type DriftFinding = {
+  kind: string;
+  driftClass: DriftClass;
+  severity: 'low' | 'medium' | 'high';
+  message: string;
+  pointers: string[];
+};
+
+export type ProposedWrite = {
+  targetPath: string;
+  description: string;
+  driftClass: DriftClass;
+  requiresApproval: boolean;
+};
+
+export type SyncResult = {
+  highestDriftClass: DriftClass;
+  findings: DriftFinding[];
+  proposedWrites: ProposedWrite[];
+  requiresHardStop: boolean;
+  requiresRebrainstorm: boolean;
+  reportMaterialized: boolean;
+  reportPath?: string;
+};

@@ -1,0 +1,11 @@
+{
+  "truth_doc_hashes": {
+    "prd": "sha256:aaa111",
+    "technical_design": "sha256:bbb222-OLD",
+    "implementation_plan": "sha256:ccc333"
+  },
+  "adapter_set": ["opencode"],
+  "repo_state": { "git_head": "deadbeef", "tree_status": "clean" },
+  "instruction_surface_hash": "isp:AGENTS.md|native-only",
+  "computed_at": "2025-01-01T00:00:00.000Z"
+}

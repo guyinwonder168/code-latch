@@ -32,6 +32,7 @@ export type HostDirDetection = {
 export type FsReadOps = {
   exists: (path: string) => Promise<boolean>;
   readdir: (path: string) => Promise<string[]>;
+  readFile: (path: string) => Promise<string>;
 };
 
 const CANONICAL_TRUTH_DOC_PATHS: Record<string, string> = {
