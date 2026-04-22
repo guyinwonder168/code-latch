@@ -115,3 +115,46 @@ export type SyncResult = {
   reportMaterialized: boolean;
   reportPath?: string;
 };
+
+export type AuditFinding = {
+  kind: 'truth-doc' | 'pack-overlap' | 'schema-health' | 'adapter-alignment' | 'incident' | 'risk';
+  severity: 'low' | 'medium' | 'high';
+  message: string;
+  pointers: string[];
+};
+
+export type AuditResult = {
+  findings: AuditFinding[];
+  riskScore: number;
+  reportMaterialized: boolean;
+  reportPath?: string;
+};
+
+export type PackCreateResult = {
+  packName: string;
+  packPath: string;
+  scope: 'project' | 'domain';
+  registered: boolean;
+  overlapScan: { conflicts: string[]; warnings: string[] };
+};
+
+export type LearnResult = {
+  incidentsScanned: number;
+  candidates: { incidentId: string; score: number; reasons: string[] }[];
+  proposalMaterialized: boolean;
+  proposalPath?: string;
+};
+
+export type CleanResult = {
+  itemsEnumerated: number;
+  itemsSelected: number;
+  itemsDeleted: number;
+  reportPath: string;
+};
+
+export type PromoteResult = {
+  lessonsLoaded: number;
+  candidates: { lessonId: string; targetGlobalPack: string; conflicts: string[] }[];
+  proposalMaterialized: boolean;
+  proposalPath?: string;
+};

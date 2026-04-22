@@ -71,3 +71,33 @@ export {
 } from './sync/index.js';
 
 export { dispatchCommand, type BootstrapInput, type SyncInput } from './dispatcher.js';
+
+export {
+  executeAuditPipeline,
+  type AuditPipelineResult,
+  type AuditInput
+} from './audit/index.js';
+
+export {
+  executePackCreatePipeline,
+  type PackCreatePipelineResult,
+  type PackCreateInput
+} from './pack-create/index.js';
+
+export {
+  executeLearnPipeline,
+  type LearnPipelineResult,
+  type LearnInput
+} from './learn/index.js';
+
+export {
+  executeCleanPipeline,
+  type CleanPipelineResult,
+  type CleanInput
+} from './clean/index.js';
+
+export {
+  executePromotePipeline,
+  type PromotePipelineResult,
+  type PromoteInput
+} from './promote/index.js';

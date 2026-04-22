@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { dispatchCommand, type FsOps, type FsReadOps, type SyncInput } from '@codelatch/core';
-import { CanonicalCommand, DriftClass, type BootstrapResult, type SyncResult } from '@codelatch/workflow-contracts';
+import { dispatchCommand, type FsOps, type FsReadOps, type SyncInput, type AuditInput } from '@codelatch/core';
+import {
+  CanonicalCommand,
+  DriftClass,
+  type BootstrapResult,
+  type SyncResult,
+  type AuditResult,
+  type PackCreateResult,
+  type LearnResult,
+  type CleanResult,
+  type PromoteResult
+} from '@codelatch/workflow-contracts';
 
 const BOOTSTRAPPED_MANIFEST = JSON.stringify({
   project_id: 'test-project',
@@ -299,12 +309,242 @@ describe('command dispatcher', () => {
     });
   });
 
-  describe('unimplemented commands', () => {
-    it('returns not-yet-implemented for unknown commands', async () => {
+  describe('audit command', () => {
+    it('fails when audit input is missing', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.AUDIT },
+        fs,
+        undefined,
+        fsRead
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('Audit requires input parameters');
+    });
+
+    it('fails when manifest is not found', async () => {
       const { fs, fsRead } = createMockFs();
+
+      const auditInput: AuditInput = {
+        inspectTruthDocs: true,
+        inspectPacks: true,
+        inspectSchemaHealth: true,
+        inspectAdapterAlignment: true,
+        inspectIncidents: true
+      };
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.AUDIT },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        auditInput
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('manifest not found');
+    });
+
+    it('runs audit and returns findings on a bootstrapped project', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const auditInput: AuditInput = {
+        inspectTruthDocs: true,
+        inspectPacks: true,
+        inspectSchemaHealth: true,
+        inspectAdapterAlignment: true,
+        inspectIncidents: true
+      };
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.AUDIT },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        auditInput
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const data = result.data! as AuditResult;
+      expect(data.findings).toBeDefined();
+      expect(data.riskScore).toBeGreaterThanOrEqual(0);
+      // reportMaterialized depends on whether findings exist;
+      // the mock fs has no incidents directory, so a low-severity finding is generated
+      expect(data.reportMaterialized).toBe(data.findings.length > 0 && data.riskScore > 0);
+    });
+  });
+
+  describe('pack-create command', () => {
+    it('fails when pack-create input is missing', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
 
       const result = await dispatchCommand(
         { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.PACK_CREATE },
+        fs,
+        undefined,
+        fsRead
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('Pack-create requires input parameters');
+    });
+
+    it('creates a project pack on a bootstrapped project', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.PACK_CREATE },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        undefined,
+        { packName: 'test-pack', scope: 'project', purpose: 'testing' }
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const data = result.data! as PackCreateResult;
+      expect(data.packName).toBe('test-pack');
+      expect(data.scope).toBe('project');
+      expect(data.registered).toBe(true);
+    });
+  });
+
+  describe('learn command', () => {
+    it('fails when learn input is missing', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.LEARN },
+        fs,
+        undefined,
+        fsRead
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('Learn requires input parameters');
+    });
+
+    it('runs learn on a bootstrapped project', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.LEARN },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        undefined,
+        undefined,
+        { scanIncidents: true, maxCandidates: 5 }
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const data = result.data! as LearnResult;
+      expect(data.incidentsScanned).toBeGreaterThanOrEqual(0);
+      expect(data.candidates).toBeDefined();
+    });
+  });
+
+  describe('clean command', () => {
+    it('fails when clean input is missing', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.CLEAN },
+        fs,
+        undefined,
+        fsRead
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('Clean requires input parameters');
+    });
+
+    it('runs clean on a bootstrapped project', async () => {
+      const { fs, fsRead, writtenFiles } = createBootstrappedFs();
+
+      // Write a reconstructible artifact
+      await fs.writeFile('/project/.tmp/codelatch/sync/sync_report_123.md', '# Sync Report');
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.CLEAN },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { targets: ['sync'], dryRun: false }
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const data = result.data! as CleanResult;
+      expect(data.itemsEnumerated).toBeGreaterThanOrEqual(0);
+      expect(data.reportPath).toBeDefined();
+    });
+  });
+
+  describe('promote command', () => {
+    it('fails when promote input is missing', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.PROMOTE },
+        fs,
+        undefined,
+        fsRead
+      );
+
+      expect(result.success).toBe(false);
+      if (result.success) return;
+      expect(result.error).toContain('Promote requires input parameters');
+    });
+
+    it('runs promote on a bootstrapped project', async () => {
+      const { fs, fsRead } = createBootstrappedFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: CanonicalCommand.PROMOTE },
+        fs,
+        undefined,
+        fsRead,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        { compareWithGlobal: true, maxCandidates: 3 }
+      );
+
+      expect(result.success).toBe(true);
+      if (!result.success) return;
+      const data = result.data! as PromoteResult;
+      expect(data.lessonsLoaded).toBeGreaterThanOrEqual(0);
+      expect(data.candidates).toBeDefined();
+    });
+  });
+
+  describe('unimplemented commands', () => {
+    it('returns not-yet-implemented for truly unknown commands', async () => {
+      const { fs, fsRead } = createMockFs();
+
+      const result = await dispatchCommand(
+        { adapterId: 'opencode', projectRoot: '/project', command: 'codelatch-unknown' as CanonicalCommand },
         fs,
         undefined,
         fsRead
