@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { dispatchCommand, type FsOps, type FsReadOps } from '@codelatch/core';
-import { createOpenCodePluginEntry } from '@codelatch/adapter-opencode';
+import { codelatchPlugin } from '@codelatch/adapter-opencode';
 import { CanonicalCommand, type BootstrapResult } from '@codelatch/workflow-contracts';
 import { ProjectManifestSchema, TruthDocRegistrySchema } from '@codelatch/schemas';
 
@@ -30,21 +30,24 @@ describe('OpenCode adapter → core bootstrap integration', () => {
 
   it('the OpenCode plugin entry can trigger bootstrap through the dispatcher', async () => {
     const { fs, fsRead } = createMockFs();
-    const plugin = createOpenCodePluginEntry();
+    const hooks = await codelatchPlugin({});
 
-    // Step 1: the plugin entry normalizes the invocation
-    const pluginResult = plugin.invoke({ commandName: 'codelatch-bootstrap' });
-    expect(pluginResult.status).toBe('ready');
-    expect(pluginResult.data.commandName).toBe('codelatch-bootstrap');
+    // Step 1: the plugin hooks have the expected shape
+    expect(typeof hooks.config).toBe('function');
+    expect(typeof hooks.tool.codelatch.execute).toBe('function');
+    expect(typeof hooks.event['command.execute.before']).toBe('function');
 
-    // Step 2: the adapter maps the invocation to a command context
+    // Step 2: the config hook registers CodeLatch commands
+    const configResult = hooks.config({});
+    expect(configResult.command).toHaveProperty('codelatch-bootstrap');
+
+    // Step 3: the dispatcher routes to the bootstrap handler
     const context = {
-      adapterId: pluginResult.data.adapter,
+      adapterId: 'opencode' as const,
       projectRoot: '/my-project',
       command: CanonicalCommand.BOOTSTRAP
     };
 
-    // Step 3: the dispatcher routes to the bootstrap handler
     const result = await dispatchCommand(context, fs, {
       projectId: 'my-project',
       adapters: ['opencode'],

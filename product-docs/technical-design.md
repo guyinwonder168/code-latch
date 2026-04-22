@@ -1,16 +1,22 @@
 # CodeLatch Technical Design
 
-- **Document Version:** 0.2.15
+- **Document Version:** 0.2.16
 - **Document Status:** Draft
 - **Product Name:** CodeLatch
 - **Document Owner:** guyinwonder168
-- **Last Updated:** 2026-04-21
+- **Last Updated:** 2026-04-22
 - **Source of Truth Location:** `product-docs/technical-design.md`
 - **Derived From:** `product-docs/codelatch-prd.md`
 
 ---
 
 ## Changelog
+
+### v0.2.16 - 2026-04-22
+- Section 8.3.3: Added OpenCode Plugin SDK interface detail — `Plugin = async (ctx) => { config, tool, event, ... }`; documented Bun as OpenCode runtime (native TypeScript transpile, no build step for local dev); documented plugin resolution path (`exports` → `main` → index files); auto-runs `bun install` for local plugin dependencies.
+- Section 8.4: Enhanced all four adapter layouts with distribution-format annotations (bundled module vs declarative directory); added Claude Code hook types (command/http/prompt/agent), env vars (`${CLAUDE_PLUGIN_ROOT}`, `${CLAUDE_PLUGIN_DATA}`), userConfig, plugin cache path; added Codex `interface` field detail, marketplace mechanics, plugin cache path; added OpenCode Plugin SDK interface specification, Bun runtime note, and build/bundling requirement for production.
+- Section 8.4.1 (new): Added Adapter Distribution Format section documenting the bundled-module vs declarative-directory architectural distinction, build requirements per adapter, and local development implications.
+- Section 9.1.1: Updated plugin-registered commands example to reference the actual OpenCode Plugin SDK interface shape.
 
 ### v0.2.15 - 2026-04-21
 - Added Section 7.1.1: Global-First Install Path Rule for OpenCode — `~/.config/opencode/` is the default install target; `.opencode/` is project-level opt-in only.
@@ -772,9 +778,9 @@ Rules:
 
 Shared CodeLatch workflow semantics stay consistent across adapters, but host realization differs:
 
-- **Claude Code** realizes event-driven integration primarily through plugin components and plugin hooks.
-- **OpenCode** realizes event-driven integration primarily through runtime plugin modules, documented config surfaces, and plugin event subscriptions. The global config directory `~/.config/opencode/` is the default install target; project-level `.opencode/` is opt-in only.
-- **Codex** realizes reusable distribution primarily through packaged plugins and marketplace wiring, while lifecycle interception uses separate experimental hooks that must remain optional.
+- **Claude Code** realizes event-driven integration primarily through plugin components and plugin hooks. Hooks support 4 types (command, http, prompt, agent) across 18+ events. User config uses `userConfig` declarations with `${user_config.KEY}` substitution. Runtime paths use `${CLAUDE_PLUGIN_ROOT}` (install dir) and `${CLAUDE_PLUGIN_DATA}` (persistent data dir). Installed plugins are cached at `~/.claude/plugins/cache/`.
+- **OpenCode** realizes event-driven integration primarily through runtime plugin modules, documented config surfaces, and plugin event subscriptions. The global config directory `~/.config/opencode/` is the default install target; project-level `.opencode/` is opt-in only. The OpenCode Plugin SDK interface is `Plugin = async (ctx) => ({ config, tool, event, ... })` — an async function receiving a context object and returning hook registrations. OpenCode runs on Bun, which natively transpiles TypeScript; local `.ts` plugin files are loaded directly without a build step. Plugin resolution follows `exports` → `main` → index files (`.ts`, `.tsx`, `.js`, `.mjs`, `.cjs`). OpenCode auto-runs `bun install` for local plugins with a `package.json`. Because `@codelatch/adapter-opencode` imports workspace packages, a build/bundling step (e.g., esbuild) is required for production distribution to collapse workspace dependencies into a single consumable module.
+- **Codex** realizes reusable distribution primarily through packaged plugins and marketplace wiring, while lifecycle interception uses separate experimental hooks that must remain optional. The Codex `plugin.json` manifest includes an `interface` field for marketplace presentation (displayName, brandColor, screenshots, defaultPrompt, etc.). Distribution relies on marketplace catalogs at `.agents/plugins/marketplace.json` or `~/.agents/plugins/marketplace.json`. Installed plugins are cached at `~/.codex/plugins/cache/`. The `$plugin-creator` built-in skill scaffolds new plugin structure.
 - **Kilo Code** realizes MVP behavior primarily through documented OpenCode-compatible config/runtime surfaces plus Kilo-native `.kilo/` discovery roots, with config-triggered or wrapper-level checkpoints where richer plugin hooks are absent.
 
 The shared core must not assume event parity or identical install surfaces across supported CLIs.
@@ -784,6 +790,8 @@ The shared core must not assume event parity or identical install surfaces acros
 The layouts below show the documented project-local or plugin-packaged surfaces each adapter may use. Not every surface exists in every install mode.
 
 #### OpenCode
+
+> **Distribution format:** Bundled TypeScript module (local dev via Bun native transpile; production via esbuild or equivalent bundler).
 
 ```text
 AGENTS.md
@@ -802,10 +810,45 @@ opencode.json              # plugin entry only; commands registered by plugin co
 ~/.config/opencode/        # DEFAULT global install target for new CodeLatch installations
   opencode.json            # user-level config; plugin key registers @codelatch/adapter-opencode
   plugins/                 # user-level plugin modules
+    codelatch/              # CodeLatch plugin directory or bundled module
+      package.json          # plugin manifest with exports/main pointing to entry
+      index.ts              # plugin entry (local dev; Bun transpiles natively)
+      index.js              # bundled entry (production; collapsed workspace deps)
+      node_modules/         # auto-installed by OpenCode via bun install
   agents/                  # user-level agents
   skills/*/SKILL.md        # user-level skill folders
   instructions.md          # user-level instruction surface
 ```
+
+**OpenCode Plugin SDK interface (verified from source):**
+
+```typescript
+import { type Plugin, tool } from "@opencode-ai/plugin"
+
+export const CodeLatchPlugin: Plugin = async (ctx) => {
+  return {
+    config: async (opencodeConfig) => {
+      // Register CodeLatch commands via opencode.json command key
+    },
+    tool: {
+      codelatch: tool({
+        description: "CodeLatch framework commands",
+        args: { /* ... */ },
+        async execute(args, context) { /* ... */ }
+      })
+    },
+    event: {
+      "command.execute.before": async (data) => {
+        // Intercept CodeLatch command execution → delegate to shared core
+      }
+    }
+  }
+}
+```
+
+**Plugin resolution (verified from source):** OpenCode resolves plugin entry points by checking `exports` → `main` → directory index files (`index.ts`, `index.tsx`, `index.js`, `index.mjs`, `index.cjs`). For local directory plugins with a `package.json`, OpenCode auto-runs `bun install` to install dependencies.
+
+**Build/bundling requirement:** Because `@codelatch/adapter-opencode` imports workspace packages (`@codelatch/core`, `@codelatch/schemas`, `@codelatch/workflow-contracts`, `@codelatch/adapter-base`), a build step is required for production distribution. The bundler (esbuild recommended) must collapse all workspace `workspace:*` dependencies into a single module. For local development, Bun's native TypeScript support allows running the plugin directly from source without bundling.
 
 Commands are registered programmatically inside the plugin's `config` hook rather than as `.md` files in `.opencode/commands/`. The `opencode.json` `command` key is the mechanism used by the `config` hook to register each CodeLatch command with `{ template, description, subtask }` entries. The plugin intercepts execution via `command.execute.before`. CodeLatch **chooses** programmatic registration; `.opencode/commands/` remains a valid OpenCode surface for file-based commands used by other plugins.
 
@@ -820,6 +863,8 @@ OpenCode plugin hooks available for CodeLatch integration:
 - **Fire-and-forget events** — lightweight event subscriptions
 
 #### Claude Code
+
+> **Distribution format:** Declarative directory package (`.claude-plugin/plugin.json` + skills, hooks, agents, MCP). No TypeScript compilation needed for core format; hook scripts are the only executable code.
 
 ```text
 CLAUDE.md
@@ -841,21 +886,36 @@ CLAUDE.md
     distribution-manifest.json
 
 .claude-plugin/
-  plugin.json
+  plugin.json              # Manifest (only `name` field required; `userConfig` for enable-time prompts)
 
-skills/
-agents/
+skills/                     # Skills as <name>/SKILL.md directories (namespaced /plugin-name:skill-name)
+agents/                     # Custom agent definitions (.md files)
 hooks/
-  hooks.json
-.mcp.json
-.lsp.json
+  hooks.json               # Hook definitions supporting 4 types: command, http, prompt, agent
+.mcp.json                  # MCP server definitions
+.lsp.json                  # LSP server configurations
 monitors/
-  monitors.json
-bin/
-settings.json
+  monitors.json            # Background monitors
+bin/                        # Executables added to PATH
+settings.json               # Default settings applied when enabled
+output-styles/              # Output style definitions
 ```
 
+**Claude Code plugin details (verified from official docs):**
+
+- **Hook types**: `command` (shell scripts), `http` (POST to URL), `prompt` (LLM evaluation), `agent` (agentic verifier)
+- **Hook events**: SessionStart, UserPromptSubmit, PreToolUse, PostToolUse, PostToolUseFailure, Notification, Stop, FileChanged, ConfigChange, and more (18+ events)
+- **User config**: `userConfig` in `plugin.json` declares values prompted at enable time, with `${user_config.KEY}` substitution in other fields
+- **Environment variables**: `${CLAUDE_PLUGIN_ROOT}` (plugin install directory), `${CLAUDE_PLUGIN_DATA}` (persistent data directory surviving updates)
+- **Installation scopes**: `user` (~/.claude/settings.json), `project` (.claude/settings.json), `local` (.claude/settings.local.json), `managed`
+- **Plugin cache**: Installed plugins cached at `~/.claude/plugins/cache/`. Files outside plugin dir are NOT accessible. Symlinks are preserved.
+- **Skills vs commands**: `commands/` is the legacy format; `skills/` is the new format. Both work; CodeLatch should prefer `skills/`.
+- **Local dev**: `claude --plugin-dir ./my-plugin`
+- **Dependencies**: `dependencies` array in `plugin.json` declares required plugins
+
 #### Codex
+
+> **Distribution format:** Declarative directory package (`.codex-plugin/plugin.json` + skills, apps, MCP). No TypeScript compilation needed; skills are `.md` files only.
 
 ```text
 AGENTS.md
@@ -874,15 +934,27 @@ AGENTS.md
     distribution-manifest.json
 
 .codex-plugin/
-  plugin.json
+  plugin.json              # Manifest with required fields + optional `interface` for marketplace
 
-skills/
-.mcp.json
-.app.json
-assets/
+skills/                     # Skills as <name>/SKILL.md directories
+.mcp.json                  # MCP server configuration
+.app.json                  # App or connector mappings
+assets/                     # Icons, logos, screenshots
 ```
 
+**Codex plugin details (verified from official docs):**
+
+- **Manifest `interface` field**: Rich metadata for marketplace presentation — `displayName`, `shortDescription`, `longDescription`, `developerName`, `category`, `capabilities`, `websiteURL`, `privacyPolicyURL`, `termsOfServiceURL`, `defaultPrompt` (array), `brandColor`, `composerIcon`, `logo`, `screenshots`
+- **Marketplace catalogs**: JSON files at `$REPO_ROOT/.agents/plugins/marketplace.json` or `~/.agents/plugins/marketplace.json`; also reads Claude-style `$REPO_ROOT/.claude-plugin/marketplace.json`
+- **Plugin cache**: `~/.codex/plugins/cache/$MARKETPLACE_NAME/$PLUGIN_NAME/$VERSION/`
+- **Scaffolding**: Built-in `$plugin-creator` skill generates plugin structure
+- **CLI commands**: `codex plugin marketplace add/remove/upgrade`
+- **Config**: Stored in `~/.codex/config.toml`
+- **No hooks, no agents, no LSP**: Codex plugins are purely skills + apps + MCP; lifecycle hooks are separate and experimental
+
 #### Kilo Code
+
+> **Distribution format:** Bundled TypeScript module (same as OpenCode; shared bundling pipeline).
 
 ```text
 AGENTS.md
@@ -902,6 +974,27 @@ kilo.jsonc
 ```
 
 Optional compatibility or fallback surfaces such as `CLAUDE.md`, `CONTEXT.md`, `.agents/`, or `AGENT.md` may be added only when multi-host support, migration compatibility, or explicit user policy requires them.
+
+### 8.4.1 Adapter Distribution Format
+
+Adapters fall into two distribution-format categories:
+
+**Bundled module adapters** (OpenCode, Kilo Code):
+- Distributed as a single bundled JavaScript/TypeScript module
+- Must export the host's Plugin interface (e.g., OpenCode's `Plugin = async (ctx) => { ... }`)
+- Require a build/bundling step (e.g., esbuild) to collapse workspace `workspace:*` dependencies into a single consumable artifact
+- Local development can run unbundled via Bun's native TypeScript support (OpenCode) or equivalent runtime
+- Installed into host plugin directory with `package.json` for dependency resolution
+- Host auto-installs dependencies for local plugins (OpenCode runs `bun install`)
+
+**Declarative directory adapters** (Claude Code, Codex):
+- Distributed as a directory with a manifest file (`.claude-plugin/plugin.json` or `.codex-plugin/plugin.json`)
+- Skills are `.md` files; no TypeScript compilation needed for core plugin format
+- Only hook scripts (Claude Code) or MCP server definitions need executable code
+- Installed from marketplace catalogs or git repositories
+- Host caches installed plugins (`~/.claude/plugins/cache/` or `~/.codex/plugins/cache/`)
+
+This distinction means `@codelatch/adapter-opencode` and `@codelatch/adapter-kilo` need a build pipeline to produce bundled output, while `@codelatch/adapter-claude` and `@codelatch/adapter-codex` primarily render declarative file structures.
 
 ### 8.5 Kilo Code Design Choice
 
@@ -958,16 +1051,29 @@ Each wrapper does only three things:
 
 ### 9.1.1 OpenCode: Plugin-Registered Commands
 
-OpenCode does not use `.md` command wrapper files. Commands are registered programmatically inside the plugin's `config` hook:
+OpenCode does not use `.md` command wrapper files. Commands are registered programmatically inside the plugin's `config` hook, following the OpenCode Plugin SDK interface (`Plugin = async (ctx) => { config, tool, event, ... }`):
 
 ```ts
-config: async (opencodeConfig) => {
-  opencodeConfig.command.codelatch_sync = {
-    template: "",
-    description: "Sync truth docs and detect drift",
-    subtask: true,
-  };
-},
+// Plugin entry exports the Plugin interface
+export const CodeLatchPlugin: Plugin = async (ctx) => {
+  return {
+    config: async (opencodeConfig) => {
+      // Register each CodeLatch command
+      opencodeConfig.command.codelatch_sync = {
+        template: "",
+        description: "Sync truth docs and detect drift",
+        subtask: true,
+      };
+      // ... more commands
+    },
+    event: {
+      "command.execute.before": async (data) => {
+        // Intercept CodeLatch command execution
+        // Delegate to shared core dispatcher
+      }
+    }
+  }
+}
 ```
 
 Execution is intercepted via the `command.execute.before` hook, which delegates to the shared core runner. This approach **chooses programmatic registration** via the plugin `config` hook rather than file-based `.md` commands; `.opencode/commands/` remains a valid OpenCode surface for other plugins.

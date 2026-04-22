@@ -3,7 +3,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./plugin": "./src/plugin/index.ts"
+  },
+  "scripts": {
+    "build": "node ../../scripts/bundle-plugin.mjs adapter-opencode"
   },
   "dependencies": {
     "@codelatch/adapter-base": "workspace:*",

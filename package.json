@@ -10,7 +10,9 @@
     "test:integration": "vitest run tests/integration --passWithNoTests",
     "test:conformance": "vitest run tests/conformance --passWithNoTests",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:conformance",
-    "verify": "pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm lint && pnpm typecheck && pnpm test",
+    "build:plugin": "node scripts/bundle-plugin.mjs adapter-opencode",
+    "build:plugins": "node scripts/bundle-plugin.mjs adapter-opencode"
   },
   "devDependencies": {
     "@codelatch/adapter-base": "workspace:*",
@@ -25,6 +27,7 @@
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.44.1",
     "vitest": "^3.2.4",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "esbuild": "^0.25.0"
   }
 }
