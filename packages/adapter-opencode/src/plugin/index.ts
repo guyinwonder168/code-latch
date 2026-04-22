@@ -166,8 +166,12 @@ export const codelatchPlugin = async (
         }
       },
       execute: async (args: Record<string, unknown>, _context: Record<string, unknown>) => {
-        const commandName = args.command as string;
-        const projectRoot = (args.projectRoot as string) ?? process.cwd();
+        const commandName = args?.command as string | undefined;
+        if (!commandName) {
+          throw new Error('codelatch tool: command argument is required');
+        }
+
+        const projectRoot = (args?.projectRoot as string) ?? process.cwd();
 
         const context: CommandContext = {
           adapterId: OPEN_CODE_ADAPTER_ID,

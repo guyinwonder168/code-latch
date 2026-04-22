@@ -136,6 +136,30 @@ describe('codelatchPlugin', () => {
       expect(result).toBeDefined();
       expect(typeof result).toBe('object');
     });
+
+    it('throws when command argument is missing', async () => {
+      const hooks = await codelatchPlugin({});
+
+      await expect(
+        hooks.tool.codelatch.execute({}, {})
+      ).rejects.toThrow('command argument is required');
+    });
+
+    it('throws when command argument is null', async () => {
+      const hooks = await codelatchPlugin({});
+
+      await expect(
+        hooks.tool.codelatch.execute({ command: null }, {})
+      ).rejects.toThrow('command argument is required');
+    });
+
+    it('throws when command argument is empty string', async () => {
+      const hooks = await codelatchPlugin({});
+
+      await expect(
+        hooks.tool.codelatch.execute({ command: '' }, {})
+      ).rejects.toThrow('command argument is required');
+    });
   });
 
   // -------------------------------------------------------------------------
